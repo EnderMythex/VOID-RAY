@@ -51,11 +51,24 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
+      - name: Signing key (from secrets)
+        env:
+          KEYSTORE_B64: ${{ secrets.VOIDRAY_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/voidray.keystore"
+            echo "VOIDRAY_KEYSTORE=$RUNNER_TEMP/voidray.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::error::Add the VOIDRAY_KEYSTORE_B64 and VOIDRAY_KEYSTORE_PASSWORD secrets before releasing"
+            exit 1
+          fi
       - name: Fetch Xray core for Android
         run: |
           curl -fsSL --retry 3 -o app/libs/libv2ray.aar \
             https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
       - name: Build APKs
+        env:
+          VOIDRAY_KEYSTORE_PASSWORD: ${{ secrets.VOIDRAY_KEYSTORE_PASSWORD }}
         run: |
           export VERSION_NAME="${VERSION#v}"
           chmod +x gradlew
@@ -99,6 +112,10 @@ jobs:
       - run: ls -la dist
       - name: Tag name
         run: echo "TAG=v${VERSION#v}" >> "$GITHUB_ENV"
+      - name: Replace an existing release with the same version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "$TAG" --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}

@@ -25,7 +25,7 @@ entrée **HTTP + TLS** d'Xray (un « proxy HTTPS »), à ajouter une fois dans 3
 3. **3x-ui → Inbounds → Add Inbound**
    - Protocol : `http` · Port : `8443`
    - Accounts : un compte par abonné — **Username = identifiant d'abonnement**
-     (la fin du lien, ex. `<identifiant>`) · **Password = UUID du client**
+     (la fin du lien `https://sub.enderr.win/ender/<identifiant>`) · **Password = UUID du client**
      (celui des configurations VLESS de cet abonné).
    - Security : `TLS`, domaine `proxy.enderr.win`, chemins du certificat et de la clé.
 4. Si l'hôte ou le port sont différents, modifie `PROXIES` dans `src/config.js`

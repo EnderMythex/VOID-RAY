@@ -23,6 +23,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Signing key (from secrets)
+        env:
+          KEYSTORE_B64: ${{ secrets.VOIDRAY_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/voidray.keystore"
+            echo "VOIDRAY_KEYSTORE=$RUNNER_TEMP/voidray.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::VOIDRAY_KEYSTORE_B64 secret missing: APKs are signed with a throwaway debug key"
+          fi
       - name: Fetch Xray core for Android (libv2ray.aar)
         run: |
           curl -fsSL --retry 3 -o app/libs/libv2ray.aar \
@@ -32,6 +42,7 @@ jobs:
       - name: Build APK
         env:
           VERSION_CODE: ${{ github.run_number }}
+          VOIDRAY_KEYSTORE_PASSWORD: ${{ secrets.VOIDRAY_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease

@@ -20,20 +20,15 @@ android {
     }
 
     signingConfigs {
-        // CI can provide a private key through secrets; otherwise the committed
-        // stable key is used so that new builds install over older ones.
-        create("release") {
-            val ks = System.getenv("VOIDRAY_KEYSTORE")
-            if (ks != null && file(ks).exists()) {
+        // The release key never lives in the repository: CI decodes it from the
+        // VOIDRAY_KEYSTORE_B64 secret into a file and passes its path here.
+        val ks = System.getenv("VOIDRAY_KEYSTORE")
+        if (ks != null && file(ks).exists()) {
+            create("release") {
                 storeFile = file(ks)
                 storePassword = System.getenv("VOIDRAY_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("VOIDRAY_KEY_ALIAS")
-                keyPassword = System.getenv("VOIDRAY_KEY_PASSWORD")
-            } else {
-                storeFile = file("voidray.keystore")
-                storePassword = "voidray"
-                keyAlias = "voidray"
-                keyPassword = "voidray"
+                keyAlias = System.getenv("VOIDRAY_KEY_ALIAS") ?: "voidray"
+                keyPassword = System.getenv("VOIDRAY_KEY_PASSWORD") ?: System.getenv("VOIDRAY_KEYSTORE_PASSWORD")
             }
         }
     }
@@ -41,10 +36,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
-        }
-        debug {
-            signingConfig = signingConfigs.getByName("release")
+            // Without the secret (forks, local builds) fall back to the debug key.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 
