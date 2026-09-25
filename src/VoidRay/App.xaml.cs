@@ -44,6 +44,7 @@ public partial class App : Application
                 Dispatcher.BeginInvoke(() => (MainWindow as MainWindow)?.ShowFromTray());
         }) { IsBackground = true, Name = "VoidRay show signal" }.Start();
 
+        Updater.CleanupOldVersion();
         DispatcherUnhandledException += OnUnhandled;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => SystemProxy.Restore();
         base.OnStartup(e);

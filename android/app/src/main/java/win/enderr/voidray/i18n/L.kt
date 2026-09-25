@@ -125,6 +125,21 @@ object L {
             "Connecté, mais aucun trafic ne passe. Essaie un autre serveur."),
         "errPermission" to ("VPN permission was refused." to "L'autorisation VPN a été refusée."),
         "failed" to ("failed" to "échec"),
+        // updates
+        "updCheck" to ("Check for updates" to "Vérifier les mises à jour"),
+        "updChecking" to ("Checking…" to "Vérification…"),
+        "updAvailable" to ("Update %s available" to "Mise à jour %s disponible"),
+        "updLatest" to ("VOID-RAY is up to date (%s)." to "VOID-RAY est à jour (%s)."),
+        "updFailed" to ("Couldn't check for updates." to "Impossible de vérifier les mises à jour."),
+        "updTitle" to ("VOID-RAY %s is available" to "VOID-RAY %s est disponible"),
+        "updText" to ("You have %s. The new version will be downloaded, then Android will ask you to install it." to
+            "Tu as la %s. La nouvelle version va être téléchargée, puis Android te demandera de l'installer."),
+        "updInstall" to ("Download and install" to "Télécharger et installer"),
+        "updLater" to ("Later" to "Plus tard"),
+        "updDownloading" to ("Downloading update… %d%%" to "Téléchargement de la mise à jour… %d %%"),
+        "updAllow" to ("Allow VOID-RAY to install apps, then tap the button again." to
+            "Autorise VOID-RAY à installer des applis, puis appuie à nouveau sur le bouton."),
+        "updInstallFailed" to ("Update failed: %s" to "Échec de la mise à jour : %s"),
         // notification
         "notifChannel" to ("VPN status" to "État du VPN"),
         "notifTitle" to ("VOID-RAY · Protected" to "VOID-RAY · Protégé"),

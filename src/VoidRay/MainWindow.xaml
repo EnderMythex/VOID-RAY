@@ -298,6 +298,13 @@
                                 <TextBlock Text="{Binding [gateContact], Source={x:Static svc:Loc.I}}" FontSize="11.5" />
                             </Button>
                         </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="{Binding CurrentVersion}" FontFamily="{StaticResource MonoFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0" />
+                            <Button Style="{StaticResource LinkBtn}" Command="{Binding CheckUpdatesCommand}">
+                                <TextBlock Text="{Binding UpdateLabel}" FontSize="11" />
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -962,6 +969,20 @@
                         </Ellipse.Style>
                     </Ellipse>
                     <TextBlock Text="{Binding FreshText}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" />
+                    <TextBlock Text="·" Margin="8,0" Opacity="0.5" />
+                    <TextBlock Text="{Binding CurrentVersion}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" Margin="0,0,8,0" />
+                    <Button Command="{Binding CheckUpdatesCommand}">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource LinkBtn}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasUpdate}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <TextBlock Text="{Binding UpdateLabel}" />
+                    </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="{Binding AccountsText}" TextTrimming="CharacterEllipsis" MaxWidth="480" />

@@ -140,6 +140,17 @@ public sealed class Loc : INotifyPropertyChanged
         ["adminDeclined"] = ("Administrator rights refused. Use Browsers (proxy) mode or try again.",
                              "Droits administrateur refusés. Utilise le mode Navigateurs (proxy) ou réessaie."),
 
+        // ---- updates
+        ["updCheck"] = ("Check for updates", "Vérifier les mises à jour"),
+        ["updChecking"] = ("Checking…", "Vérification…"),
+        ["updAvailable"] = ("Update {0} available", "Mise à jour {0} disponible"),
+        ["updLatest"] = ("VOID-RAY is up to date ({0}).", "VOID-RAY est à jour ({0})."),
+        ["updFailed"] = ("Couldn't check for updates.", "Impossible de vérifier les mises à jour."),
+        ["updAsk"] = ("VOID-RAY {0} is available (you have {1}).\n\n{2}\n\nDownload and install it now? The VPN will be disconnected and the app restarted.",
+                      "VOID-RAY {0} est disponible (tu as {1}).\n\n{2}\n\nLa télécharger et l'installer maintenant ? Le VPN sera déconnecté et l'app redémarrée."),
+        ["updDownloading"] = ("Downloading update… {0}%", "Téléchargement de la mise à jour… {0} %"),
+        ["updInstallFailed"] = ("Update failed: {0}", "Échec de la mise à jour : {0}"),
+
         // ---- tray
         ["trayOpen"] = ("Open VOID-RAY", "Ouvrir VOID-RAY"),
         ["trayConnect"] = ("Connect", "Se connecter"),

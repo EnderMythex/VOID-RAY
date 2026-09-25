@@ -107,6 +107,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         CopyLogsCommand = new RelayCommand(() => Copy(string.Join(Environment.NewLine, Logs), Loc.T("lblLog")));
         ClearLogsCommand = new RelayCommand(() => Logs.Clear());
         SetModeCommand = new RelayCommand(p => SetModeAsync(p as string));
+        CheckUpdatesCommand = new RelayCommand(() => CheckUpdatesAsync(manual: true), () => !IsCheckingUpdates);
+        _ = CheckUpdatesAsync(manual: false);
 
         // Leftover proxy from a crash? Put the user's settings back.
         SystemProxy.Restore();
@@ -147,6 +149,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand CopyLogsCommand { get; }
     public ICommand ClearLogsCommand { get; }
     public ICommand SetModeCommand { get; }
+    public ICommand CheckUpdatesCommand { get; }
 
     /// <summary>Asks the window to quit (after an elevated instance was started).</summary>
     public event Action? QuitRequested;
@@ -537,7 +540,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                      nameof(UploadText), nameof(DownloadText), nameof(HasHistory), nameof(HistoryAverage),
                      nameof(ServerCount), nameof(FreshText), nameof(ThemeLabel), nameof(LangBadge),
                      nameof(GateButtonText), nameof(StateText), nameof(ActionHint), nameof(SelectedServerName),
-                     nameof(RealDelay), nameof(ModeHint),
+                     nameof(RealDelay), nameof(ModeHint), nameof(UpdateLabel),
                  })
             OnPropertyChanged(name);
         RebuildDetails();
@@ -645,6 +648,103 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _realDelay switch { null => "—", "failed" => Loc.T("failed"), var d => d };
         private set => Set(ref _realDelay, value);
+    }
+
+    // ================================================================ updates
+
+    private bool _isCheckingUpdates;
+    private Updater.Release? _availableUpdate;
+
+    public string CurrentVersion => Updater.CurrentText;
+
+    public bool IsCheckingUpdates
+    {
+        get => _isCheckingUpdates;
+        private set
+        {
+            if (Set(ref _isCheckingUpdates, value))
+                OnPropertyChanged(nameof(UpdateLabel));
+        }
+    }
+
+    public bool HasUpdate => _availableUpdate is not null;
+
+    public string UpdateLabel => IsCheckingUpdates ? Loc.T("updChecking")
+        : _availableUpdate is { } u ? Loc.T("updAvailable", u.Tag)
+        : Loc.T("updCheck");
+
+    private async Task CheckUpdatesAsync(bool manual)
+    {
+        if (IsCheckingUpdates)
+            return;
+        IsCheckingUpdates = true;
+        Updater.Release? latest;
+        try
+        {
+            latest = await Updater.GetLatestAsync();
+        }
+        catch (Exception ex)
+        {
+            AddLog("Vérification des mises à jour impossible : " + ex.Message);
+            latest = null;
+        }
+        finally
+        {
+            IsCheckingUpdates = false;
+        }
+
+        if (latest is null)
+        {
+            if (manual) ShowToast(Loc.T("updFailed"), error: true);
+            return;
+        }
+        _availableUpdate = latest.Version > Updater.Current ? latest : null;
+        OnPropertyChanged(nameof(HasUpdate));
+        OnPropertyChanged(nameof(UpdateLabel));
+
+        if (_availableUpdate is null)
+        {
+            if (manual) ShowToast(Loc.T("updLatest", Updater.CurrentText));
+            return;
+        }
+        AddLog($"Mise à jour disponible : {latest.Tag}.");
+        if (manual)
+            await InstallUpdateAsync(latest);
+    }
+
+    private async Task InstallUpdateAsync(Updater.Release release)
+    {
+        var notes = release.Notes.Length > 600 ? release.Notes[..600] + "…" : release.Notes;
+        var answer = MessageBox.Show(Loc.T("updAsk", release.Tag, Updater.CurrentText, notes.Trim()),
+            "VOID-RAY", MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (answer != MessageBoxResult.Yes)
+            return;
+
+        if (release.DownloadUrl is null)
+        {
+            OpenUrl(release.PageUrl);
+            return;
+        }
+        try
+        {
+            IsCheckingUpdates = true;
+            var progress = new Progress<int>(p => ShowToast(Loc.T("updDownloading", p)));
+            await Updater.InstallAsync(release, progress);
+            if (State != ConnectionState.Disconnected)
+                await DisconnectAsync();
+            Updater.Relaunch();
+            QuitRequested?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            AddLog("Échec de la mise à jour : " + ex.Message);
+            ShowToast(Loc.T("updInstallFailed", ex.Message), error: true);
+            OpenUrl(release.PageUrl);
+        }
+        finally
+        {
+            IsCheckingUpdates = false;
+        }
     }
 
     public bool IsTunMode => _settings.Mode != "proxy";

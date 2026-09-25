@@ -28,7 +28,9 @@ import win.enderr.voidray.core.SubscriptionFetcher
 import win.enderr.voidray.core.SubscriptionInfo
 import win.enderr.voidray.core.UsageHistory
 import win.enderr.voidray.core.XrayConfig
+import win.enderr.voidray.BuildConfig
 import win.enderr.voidray.data.Store
+import win.enderr.voidray.update.AppUpdater
 import win.enderr.voidray.i18n.L
 import win.enderr.voidray.vpn.NetTools
 import win.enderr.voidray.vpn.VoidRayVpnService
@@ -104,6 +106,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     var toast by mutableStateOf<ToastMsg?>(null); private set
 
+    // ---- updates
+    val currentVersion: String = "v" + BuildConfig.VERSION_NAME
+    var checkingUpdate by mutableStateOf(false); private set
+    var availableUpdate by mutableStateOf<AppUpdater.Release?>(null); private set
+    /** Shown as a dialog when the user asked for the check and a newer version exists. */
+    var updatePrompt by mutableStateOf<AppUpdater.Release?>(null); private set
+
     private var refreshLoop: Job? = null
 
     init {
@@ -120,6 +129,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 if (status == VpnStatus.Disconnected) { publicIp = null; exitCountry = null; realDelay = null }
             }
         }
+        checkUpdates(manual = false)
         viewModelScope.launch {
             VpnState.error.collect { err ->
                 if (err != null) {
@@ -399,6 +409,72 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             publicIp = exit.ip
             exitCountry = exit.country?.let { "$it (${exit.countryCode})" }
             realDelay = "${exit.delayMs} ms"
+        }
+    }
+
+    // ================================================================ updates
+
+    val updateLabel: String
+        get() = when {
+            checkingUpdate -> L.t("updChecking")
+            availableUpdate != null -> L.t("updAvailable", availableUpdate!!.tag)
+            else -> L.t("updCheck")
+        }
+
+    fun checkUpdates(manual: Boolean) {
+        if (checkingUpdate) return
+        if (manual && availableUpdate != null) {
+            updatePrompt = availableUpdate
+            return
+        }
+        checkingUpdate = true
+        viewModelScope.launch {
+            val latest = try {
+                withContext(Dispatchers.IO) { AppUpdater.latest(BuildConfig.VERSION_NAME) }
+            } catch (e: Exception) {
+                null
+            }
+            checkingUpdate = false
+            if (latest == null) {
+                if (manual) showToast(L.t("updFailed"), error = true)
+                return@launch
+            }
+            val newer = AppUpdater.isNewer(latest.version, AppUpdater.parseVersion(BuildConfig.VERSION_NAME))
+            availableUpdate = if (newer) latest else null
+            when {
+                !newer -> if (manual) showToast(L.t("updLatest", currentVersion))
+                manual -> updatePrompt = latest
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        updatePrompt = null
+    }
+
+    fun installUpdate() {
+        val release = updatePrompt ?: return
+        updatePrompt = null
+        val url = release.apkUrl
+        if (url == null) {
+            openUrl(release.page)
+            return
+        }
+        val ctx = getApplication<Application>()
+        checkingUpdate = true
+        viewModelScope.launch {
+            try {
+                val apk = withContext(Dispatchers.IO) {
+                    AppUpdater.download(ctx, url) { percent ->
+                        viewModelScope.launch { showToast(L.t("updDownloading", percent)) }
+                    }
+                }
+                if (!AppUpdater.install(ctx, apk)) showToast(L.t("updAllow"))
+            } catch (e: Exception) {
+                showToast(L.t("updInstallFailed", e.message ?: ""), error = true)
+            } finally {
+                checkingUpdate = false
+            }
         }
     }
 

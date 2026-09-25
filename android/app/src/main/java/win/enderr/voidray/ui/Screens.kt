@@ -95,6 +95,7 @@ fun VoidRayApp(vm: MainViewModel, systemDark: Boolean, status: VpnStatus, onTogg
                     if (vm.authenticated) Dashboard(vm, status, onToggleVpn) else Gate(vm)
                 }
                 ToastHost(vm, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp))
+                UpdateDialog(vm)
             }
         }
     }
@@ -226,6 +227,13 @@ private fun Gate(vm: MainViewModel) {
                 Text(L.t("gateHelp"), color = p.muted, fontSize = 12.sp)
                 Spacer(Modifier.width(6.dp))
                 Text(L.t("gateContact"), color = p.ink2, fontSize = 12.sp, modifier = Modifier.clickable { vm.openUrl(Brand.DEFAULT_SUPPORT_URL) })
+            }
+            Spacer(Modifier.height(8.dp))
+            Row {
+                Text(vm.currentVersion, color = p.muted, fontFamily = Mono, fontSize = 11.sp)
+                Text("  ·  ", color = p.muted.copy(alpha = .5f), fontSize = 11.sp)
+                Text(vm.updateLabel, color = if (vm.availableUpdate != null) p.accent else p.ink2, fontSize = 11.sp,
+                    modifier = Modifier.clickable { vm.checkUpdates(manual = true) })
             }
         }
     }
@@ -499,6 +507,49 @@ private fun Footer(vm: MainViewModel) {
             Box(Modifier.size(5.dp).clip(CircleShape).background(p.accent.copy(alpha = if (vm.refreshing) 1f else .55f)))
             Spacer(Modifier.width(6.dp))
             Text(vm.freshText(now), color = p.muted, fontFamily = Mono, fontSize = 10.5.sp)
+        }
+        Spacer(Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(vm.currentVersion, color = p.muted, fontFamily = Mono, fontSize = 10.5.sp)
+            Text("  ·  ", color = p.muted.copy(alpha = .5f), fontSize = 11.sp)
+            Text(
+                vm.updateLabel,
+                color = if (vm.availableUpdate != null) p.accent else p.ink2,
+                fontSize = 11.sp,
+                fontWeight = if (vm.availableUpdate != null) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier.clickable { vm.checkUpdates(manual = true) },
+            )
+        }
+    }
+}
+
+// ==================================================================== update dialog
+
+@Composable
+private fun UpdateDialog(vm: MainViewModel) {
+    val p = LocalPalette.current
+    val release = vm.updatePrompt ?: return
+    androidx.compose.ui.window.Dialog(onDismissRequest = { vm.dismissUpdate() }) {
+        Column(Modifier.background(p.bg).border(1.dp, p.line).padding(20.dp)) {
+            Text(L.t("updTitle", release.tag), color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(6.dp))
+            Text(L.t("updText", vm.currentVersion), color = p.muted, fontSize = 12.5.sp, lineHeight = 18.sp)
+            if (release.notes.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    release.notes.trim().take(600),
+                    color = p.ink2, fontSize = 12.sp, lineHeight = 17.sp,
+                    modifier = Modifier.fillMaxWidth().background(p.field).border(1.dp, p.line2).padding(10.dp),
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+            Btn({ vm.installUpdate() }, Modifier.fillMaxWidth(), kind = BtnKind.Accent, minHeight = 44.dp) {
+                BtnText(L.t("updInstall"), size = 13.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Btn({ vm.dismissUpdate() }, Modifier.fillMaxWidth()) {
+                BtnText(L.t("updLater"))
+            }
         }
     }
 }

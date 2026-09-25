@@ -12,8 +12,11 @@ android {
         applicationId = "win.enderr.voidray"
         minSdk = 26
         targetSdk = 35
-        versionCode = (System.getenv("VERSION_CODE") ?: "1").toInt()
-        versionName = "1.0.${System.getenv("VERSION_CODE") ?: "0"}"
+        // Release builds pass VERSION_NAME (from the git tag); the code grows with it.
+        val version = System.getenv("VERSION_NAME") ?: "1.1.0"
+        val parts = version.split('.').map { it.toIntOrNull() ?: 0 } + listOf(0, 0, 0)
+        versionName = version
+        versionCode = parts[0] * 10000 + parts[1] * 100 + parts[2]
     }
 
     signingConfigs {
