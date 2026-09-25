@@ -1,0 +1,760 @@
+<Window x:Class="VoidRay.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:VoidRay.ViewModels"
+        Title="VOID-RAY" Icon="Assets/voidray.ico" Width="1220" Height="780" MinWidth="1060" MinHeight="680"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="CanResizeWithGrip" WindowStartupLocation="CenterScreen"
+        FontFamily="{StaticResource UiFont}" Foreground="{StaticResource TextBrush}"
+        TextOptions.TextFormattingMode="Ideal" UseLayoutRounding="True">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+        <Style x:Key="BareButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ToggleLink" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="8" Padding="10,6">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Surface2Brush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Stat tile used under the connect button -->
+        <Style x:Key="StatLabel" TargetType="TextBlock" BasedOn="{StaticResource SectionTitle}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock" BasedOn="{StaticResource Value}">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="Chrome" Margin="12">
+        <!-- Shadow -->
+        <Border CornerRadius="20" Background="{StaticResource BgBrush}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.75" Color="Black" />
+            </Border.Effect>
+        </Border>
+
+        <!-- Background glows -->
+        <Border CornerRadius="20">
+            <Border.Background>
+                <RadialGradientBrush Center="0.12,0.0" GradientOrigin="0.12,0.0" RadiusX="0.55" RadiusY="0.7">
+                    <GradientStop Color="#308B5CF6" Offset="0" />
+                    <GradientStop Color="#008B5CF6" Offset="1" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+        <Border CornerRadius="20">
+            <Border.Background>
+                <RadialGradientBrush Center="0.92,1.0" GradientOrigin="0.92,1.0" RadiusX="0.5" RadiusY="0.65">
+                    <GradientStop Color="#2222D3EE" Offset="0" />
+                    <GradientStop Color="#0022D3EE" Offset="1" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
+        <Border CornerRadius="20" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="58" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- ======================================================== title bar -->
+            <Grid Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0">
+                    <Viewbox Width="28" Height="28">
+                        <Canvas Width="32" Height="32">
+                            <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
+                                     Stroke="{StaticResource AccentGradient}" StrokeThickness="3" />
+                            <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
+                                     Fill="{StaticResource AccentGradient}" />
+                            <Path Data="M1,31 L31,1" Stroke="{StaticResource Accent2Brush}" StrokeThickness="2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" Opacity="0.9" />
+                        </Canvas>
+                    </Viewbox>
+                    <TextBlock Text="VOID" FontSize="17" FontWeight="Black" Margin="12,0,0,0"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="-RAY" FontSize="17" FontWeight="Black" VerticalAlignment="Center"
+                               Foreground="{StaticResource AccentGradientH}" />
+                    <Border Margin="12,0,0,0" CornerRadius="6" Padding="7,2" VerticalAlignment="Center"
+                            Background="{StaticResource Surface2Brush}" BorderBrush="{StaticResource LineBrush}"
+                            BorderThickness="1">
+                        <TextBlock Text="VPN · v1.0" FontSize="10" FontWeight="SemiBold"
+                                   Foreground="{StaticResource MutedBrush}" />
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            Margin="0,0,12,0">
+                    <Button Style="{StaticResource TitleBarButton}" Click="Minimize_Click" ToolTip="Réduire">
+                        <TextBlock Text="&#xE921;" FontFamily="{StaticResource IconFont}" FontSize="10" />
+                    </Button>
+                    <Button Style="{StaticResource TitleBarButton}" Click="Maximize_Click" ToolTip="Agrandir">
+                        <TextBlock x:Name="MaximizeGlyph" Text="&#xE922;" FontFamily="{StaticResource IconFont}"
+                                   FontSize="10" />
+                    </Button>
+                    <Button Style="{StaticResource CloseButton}" Click="Close_Click" ToolTip="Fermer">
+                        <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource IconFont}" FontSize="10" />
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ======================================================== content -->
+            <Grid Grid.Row="1" Margin="20,0,20,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="350" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="330" />
+                </Grid.ColumnDefinitions>
+
+                <!-- ==================================================== LEFT: subscription -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Padding="0,0,6,0">
+                    <StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="LIEN D'ABONNEMENT" Style="{StaticResource SectionTitle}" />
+                                <TextBlock Text="Colle ton lien, tout le reste est récupéré automatiquement."
+                                           Style="{StaticResource Caption}" FontWeight="Normal" FontSize="12"
+                                           TextWrapping="Wrap" Margin="0,6,0,12" />
+                                <TextBox Style="{StaticResource InputBox}"
+                                         Text="{Binding SubscriptionUrl, UpdateSourceTrigger=PropertyChanged}"
+                                         Tag="https://sub.exemple.com/ton-lien">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Enter" Command="{Binding RefreshCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Style="{StaticResource PrimaryButton}" Command="{Binding RefreshCommand}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}"
+                                                       FontSize="13" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock Text="{Binding RefreshLabel}" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="1" Style="{StaticResource BaseButton}" Margin="8,0,0,0"
+                                            Padding="14,10" Command="{Binding PasteCommand}"
+                                            ToolTip="Coller depuis le presse-papiers">
+                                        <TextBlock Text="&#xE77F;" FontFamily="{StaticResource IconFont}" FontSize="14" />
+                                    </Button>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Empty state -->
+                        <Border Style="{StaticResource Card}" Margin="0,14,0,0"
+                                Visibility="{Binding HasSubscription, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                            <StackPanel HorizontalAlignment="Center" Margin="0,18">
+                                <TextBlock Text="&#xE8D7;" FontFamily="{StaticResource IconFont}" FontSize="30"
+                                           HorizontalAlignment="Center" Foreground="{StaticResource AccentGradient}" />
+                                <TextBlock Text="Aucun abonnement" Style="{StaticResource Value}"
+                                           HorizontalAlignment="Center" Margin="0,12,0,4" />
+                                <TextBlock Text="Ton quota, ta date d'expiration et tes serveurs s'afficheront ici."
+                                           Style="{StaticResource Caption}" FontWeight="Normal" FontSize="12"
+                                           TextWrapping="Wrap" TextAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Subscription details -->
+                        <Border Style="{StaticResource Card}" Margin="0,14,0,0"
+                                Visibility="{Binding HasSubscription, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding ProfileTitle}" FontSize="19" FontWeight="Bold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                                    Visibility="{Binding HasUsername, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="&#xE77B;" FontFamily="{StaticResource IconFont}" FontSize="11"
+                                                       Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding Username}" Style="{StaticResource Caption}"
+                                                       FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" CornerRadius="8" Padding="9,4" VerticalAlignment="Top"
+                                            Margin="10,2,0,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#2234D399" />
+                                                <Setter Property="BorderBrush" Value="#5534D399" />
+                                                <Setter Property="BorderThickness" Value="1" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding StatusKind}" Value="Warning">
+                                                        <Setter Property="Background" Value="#22FBBF24" />
+                                                        <Setter Property="BorderBrush" Value="#55FBBF24" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusKind}" Value="Bad">
+                                                        <Setter Property="Background" Value="#22F87171" />
+                                                        <Setter Property="BorderBrush" Value="#55F87171" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,6,0"
+                                                     Fill="{Binding Foreground, ElementName=StatusLabel}" />
+                                            <TextBlock x:Name="StatusLabel" Text="{Binding StatusText}" FontSize="10"
+                                                       FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding StatusKind}" Value="Warning">
+                                                                <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding StatusKind}" Value="Bad">
+                                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <Rectangle Height="1" Fill="{StaticResource LineBrush}" Margin="0,16" />
+
+                                <!-- Traffic -->
+                                <TextBlock Text="DONNÉES" Style="{StaticResource SectionTitle}" />
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,10">
+                                    <TextBlock Text="{Binding UsedText}" FontSize="24" FontWeight="Bold" />
+                                    <TextBlock Text=" / " FontSize="18" Foreground="{StaticResource FaintBrush}"
+                                               VerticalAlignment="Bottom" Margin="4,0,2,2" />
+                                    <TextBlock Text="{Binding TotalText}" FontSize="18" FontWeight="SemiBold"
+                                               Foreground="{StaticResource MutedBrush}" VerticalAlignment="Bottom"
+                                               Margin="0,0,0,2" />
+                                </StackPanel>
+                                <ProgressBar Style="{StaticResource UsageBar}" Value="{Binding UsagePercent, Mode=OneWay}"
+                                             Visibility="{Binding IsUnlimited, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                                <TextBlock Text="{Binding RemainingText}" Style="{StaticResource Caption}"
+                                           FontWeight="Normal" FontSize="12" Margin="0,8,0,0" />
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="10" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Style="{StaticResource Tile}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE74A;" FontFamily="{StaticResource IconFont}"
+                                                           FontSize="11" Foreground="{StaticResource AccentBrush}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Text="ENVOYÉ" Style="{StaticResource SectionTitle}"
+                                                           Margin="6,0,0,0" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding UploadText}" Style="{StaticResource Value}"
+                                                       Margin="0,6,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource Tile}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE74B;" FontFamily="{StaticResource IconFont}"
+                                                           FontSize="11" Foreground="{StaticResource Accent2Brush}"
+                                                           VerticalAlignment="Center" />
+                                                <TextBlock Text="REÇU" Style="{StaticResource SectionTitle}"
+                                                           Margin="6,0,0,0" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DownloadText}" Style="{StaticResource Value}"
+                                                       Margin="0,6,0,0" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+
+                                <Rectangle Height="1" Fill="{StaticResource LineBrush}" Margin="0,16" />
+
+                                <!-- Expiry -->
+                                <TextBlock Text="EXPIRATION" Style="{StaticResource SectionTitle}" />
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Width="38" Height="38" CornerRadius="10" Background="#1F8B5CF6">
+                                        <TextBlock Text="&#xE787;" FontFamily="{StaticResource IconFont}" FontSize="16"
+                                                   Foreground="{StaticResource AccentBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding ExpireText}" Style="{StaticResource Value}" />
+                                        <TextBlock Text="{Binding DaysLeftText}" FontSize="12" Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusKind}" Value="Warning">
+                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding StatusKind}" Value="Bad">
+                                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Announce -->
+                                <Border Margin="0,16,0,0" CornerRadius="10" Padding="12,10" Background="#148B5CF6"
+                                        BorderBrush="#338B5CF6" BorderThickness="1"
+                                        Visibility="{Binding HasAnnounce, Converter={StaticResource BoolToVis}}">
+                                    <TextBlock Text="{Binding Announce}" TextWrapping="Wrap" FontSize="12"
+                                               Foreground="{StaticResource TextBrush}" />
+                                </Border>
+
+                                <!-- Links -->
+                                <WrapPanel Margin="0,14,0,0">
+                                    <Button Style="{StaticResource BaseButton}" Padding="12,7" Margin="0,0,8,0"
+                                            FontSize="12" Command="{Binding OpenUrlCommand}"
+                                            CommandParameter="{Binding SupportUrl}"
+                                            Visibility="{Binding HasSupportUrl, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE897;" FontFamily="{StaticResource IconFont}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBlock Text="Support" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Style="{StaticResource BaseButton}" Padding="12,7" FontSize="12"
+                                            Command="{Binding OpenUrlCommand}" CommandParameter="{Binding WebPageUrl}"
+                                            Visibility="{Binding HasWebPageUrl, Converter={StaticResource BoolToVis}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="&#xE774;" FontFamily="{StaticResource IconFont}"
+                                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                                            <TextBlock Text="Site web" />
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
+
+                                <TextBlock Text="{Binding UpdatedText}" FontSize="11" Margin="0,10,0,0"
+                                           Foreground="{StaticResource FaintBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ==================================================== CENTER: connection -->
+                <Grid Grid.Column="1" Margin="20,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Button Style="{StaticResource BareButton}" Command="{Binding ToggleConnectionCommand}"
+                                HorizontalAlignment="Center">
+                            <Grid Width="260" Height="260">
+                                <!-- Pulse -->
+                                <Ellipse Width="200" Height="200" RenderTransformOrigin="0.5,0.5" Opacity="0"
+                                         Stroke="{StaticResource AccentGradient}" StrokeThickness="2">
+                                    <Ellipse.RenderTransform>
+                                        <ScaleTransform />
+                                    </Ellipse.RenderTransform>
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Connected">
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard x:Name="PulseStory">
+                                                            <Storyboard RepeatBehavior="Forever">
+                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                                 From="1" To="1.28" Duration="0:0:2.2" />
+                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                                 From="1" To="1.28" Duration="0:0:2.2" />
+                                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                                 From="0.8" To="0" Duration="0:0:2.2" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                    <DataTrigger.ExitActions>
+                                                        <StopStoryboard BeginStoryboardName="PulseStory" />
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+
+                                <!-- Outer ring -->
+                                <Ellipse Width="212" Height="212" StrokeThickness="2">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Stroke" Value="{StaticResource LineStrongBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Connected">
+                                                    <Setter Property="Stroke" Value="{StaticResource AccentGradient}" />
+                                                    <Setter Property="StrokeThickness" Value="3" />
+                                                    <Setter Property="Effect">
+                                                        <Setter.Value>
+                                                            <DropShadowEffect Color="{StaticResource AccentColor}"
+                                                                              BlurRadius="40" ShadowDepth="0" Opacity="0.9" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+
+                                <!-- Spinner arc (connecting) -->
+                                <Path Width="212" Height="212" Stretch="None" RenderTransformOrigin="0.5,0.5"
+                                      StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Stroke="{StaticResource AccentGradient}"
+                                      Data="M 106,1 A 105,105 0 0 1 211,106">
+                                    <Path.RenderTransform>
+                                        <RotateTransform />
+                                    </Path.RenderTransform>
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Connecting">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <DataTrigger.EnterActions>
+                                                        <BeginStoryboard x:Name="SpinStory">
+                                                            <Storyboard RepeatBehavior="Forever">
+                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                                 From="0" To="360" Duration="0:0:1" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </DataTrigger.EnterActions>
+                                                    <DataTrigger.ExitActions>
+                                                        <StopStoryboard BeginStoryboardName="SpinStory" />
+                                                    </DataTrigger.ExitActions>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding State}" Value="Disconnecting">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
+
+                                <!-- Core disc -->
+                                <Ellipse x:Name="CoreDisc" Width="176" Height="176">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill">
+                                                <Setter.Value>
+                                                    <RadialGradientBrush GradientOrigin="0.5,0.3">
+                                                        <GradientStop Color="#FF1A1A23" Offset="0" />
+                                                        <GradientStop Color="#FF0B0B10" Offset="1" />
+                                                    </RadialGradientBrush>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Setter Property="Stroke" Value="{StaticResource LineBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Connected">
+                                                    <Setter Property="Fill">
+                                                        <Setter.Value>
+                                                            <RadialGradientBrush GradientOrigin="0.5,0.3">
+                                                                <GradientStop Color="#FF3B2A77" Offset="0" />
+                                                                <GradientStop Color="#FF120F24" Offset="1" />
+                                                            </RadialGradientBrush>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Stroke" Value="{StaticResource LineStrongBrush}" />
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+
+                                <!-- Power icon -->
+                                <Viewbox Width="58" Height="58" IsHitTestVisible="False">
+                                    <Path Data="M 12,2.5 L 12,11 M 6.2,5.6 A 8.2,8.2 0 1 0 17.8,5.6"
+                                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          Width="24" Height="24" Stretch="None">
+                                        <Path.Style>
+                                            <Style TargetType="Path">
+                                                <Setter Property="Stroke" Value="{StaticResource MutedBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding State}" Value="Connected">
+                                                        <Setter Property="Stroke" Value="White" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Path.Style>
+                                    </Path>
+                                </Viewbox>
+                            </Grid>
+                        </Button>
+
+                        <TextBlock Text="{Binding StateText}" FontSize="28" FontWeight="Black"
+                                   HorizontalAlignment="Center" Margin="0,18,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Connected">
+                                            <Setter Property="Foreground" Value="{StaticResource AccentGradientH}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Text="{Binding ActionHint}" Style="{StaticResource Caption}" FontWeight="Normal"
+                                   FontSize="13" HorizontalAlignment="Center" Margin="0,6,0,0" />
+
+                        <Border HorizontalAlignment="Center" Margin="0,18,0,0" CornerRadius="20" Padding="16,9"
+                                Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource LineBrush}"
+                                BorderThickness="1" MaxWidth="440">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{StaticResource FaintBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding State}" Value="Connected">
+                                                    <Setter Property="Fill" Value="{StaticResource SuccessBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                </Ellipse>
+                                <TextBlock Text="{Binding SelectedServerName}" FontSize="13" FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Stats -->
+                    <StackPanel Grid.Row="1">
+                        <UniformGrid Columns="4">
+                            <Border Style="{StaticResource Tile}" Margin="0,0,5,0">
+                                <StackPanel>
+                                    <TextBlock Text="DURÉE" Style="{StaticResource StatLabel}" />
+                                    <TextBlock Text="{Binding Elapsed}" Style="{StaticResource StatValue}"
+                                               FontFamily="{StaticResource MonoFont}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}" Margin="5,0">
+                                <StackPanel>
+                                    <TextBlock Text="IP PUBLIQUE" Style="{StaticResource StatLabel}" />
+                                    <TextBlock Text="{Binding PublicIp}" Style="{StaticResource StatValue}"
+                                               ToolTip="{Binding PublicIp}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}" Margin="5,0">
+                                <StackPanel>
+                                    <TextBlock Text="LOCALISATION" Style="{StaticResource StatLabel}" />
+                                    <TextBlock Text="{Binding ExitCountry}" Style="{StaticResource StatValue}"
+                                               ToolTip="{Binding ExitCountry}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Tile}" Margin="5,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="LATENCE RÉELLE" Style="{StaticResource StatLabel}" />
+                                    <TextBlock Text="{Binding RealDelay}" Style="{StaticResource StatValue}" />
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                        <TextBlock Text="{Binding LocalEndpoints}" FontSize="11" Foreground="{StaticResource FaintBrush}"
+                                   HorizontalAlignment="Center" Margin="0,10,0,0"
+                                   FontFamily="{StaticResource MonoFont}" />
+                    </StackPanel>
+
+                    <!-- Logs -->
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                        <DockPanel>
+                            <ToggleButton x:Name="LogsToggle" Style="{StaticResource ToggleLink}" DockPanel.Dock="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE756;" FontFamily="{StaticResource IconFont}" FontSize="12"
+                                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="Journal" FontSize="12" FontWeight="SemiBold" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                                        Visibility="{Binding IsChecked, ElementName=LogsToggle, Converter={StaticResource BoolToVis}}">
+                                <Button Style="{StaticResource GhostButton}" BorderThickness="0" Content="Copier"
+                                        Command="{Binding CopyLogsCommand}" />
+                                <Button Style="{StaticResource GhostButton}" BorderThickness="0" Content="Effacer"
+                                        Command="{Binding ClearLogsCommand}" />
+                            </StackPanel>
+                        </DockPanel>
+                        <Border Style="{StaticResource Tile}" Margin="0,6,0,0" Padding="10,8" Height="140"
+                                Visibility="{Binding IsChecked, ElementName=LogsToggle, Converter={StaticResource BoolToVis}}">
+                            <ListBox x:Name="LogList" ItemsSource="{Binding Logs}" Background="Transparent"
+                                     BorderThickness="0" Foreground="{StaticResource MutedBrush}"
+                                     FontFamily="{StaticResource MonoFont}" FontSize="11"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <ContentPresenter Margin="0,1" />
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ==================================================== RIGHT: servers -->
+                <Border Grid.Column="2" Style="{StaticResource Card}" Padding="16,16,10,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="2,0,6,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="SERVEURS" Style="{StaticResource SectionTitle}"
+                                           VerticalAlignment="Center" />
+                                <Border CornerRadius="6" Padding="6,1" Margin="8,0,0,0"
+                                        Background="{StaticResource Surface3Brush}">
+                                    <TextBlock Text="{Binding ServerCount}" FontSize="11" FontWeight="Bold"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </Border>
+                            </StackPanel>
+                            <Button Style="{StaticResource GhostButton}" HorizontalAlignment="Right"
+                                    Command="{Binding PingAllCommand}" BorderThickness="0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE945;" FontFamily="{StaticResource IconFont}"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                               Foreground="{StaticResource Accent2Brush}" />
+                                    <TextBlock Text="Tester le ping" />
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+
+                        <TextBlock Grid.Row="1" Text="Les serveurs de ton abonnement apparaîtront ici."
+                                   Style="{StaticResource Caption}" FontWeight="Normal" FontSize="12"
+                                   TextWrapping="Wrap" TextAlignment="Center" Margin="20,40"
+                                   Visibility="{Binding HasSubscription, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                        <ListBox Grid.Row="1" Style="{StaticResource ServerList}"
+                                 ItemContainerStyle="{StaticResource ServerItem}"
+                                 ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Width="46" Height="34" CornerRadius="8" Background="#1F8B5CF6"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Protocol}" FontSize="9.5" FontWeight="Black"
+                                                       Foreground="{StaticResource AccentBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Name}" />
+                                            <TextBlock Text="{Binding Transport}" FontSize="11" Margin="0,2,0,0"
+                                                       Foreground="{StaticResource FaintBrush}"
+                                                       TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding PingText}" FontSize="12"
+                                                   FontWeight="Bold" VerticalAlignment="Center"
+                                                   FontFamily="{StaticResource MonoFont}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource FaintBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Quality}" Value="Good">
+                                                            <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Quality}" Value="Medium">
+                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Quality}" Value="Bad">
+                                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Quality}" Value="Timeout">
+                                                            <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- ==================================================== toast -->
+                <Border Grid.ColumnSpan="3" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                        Margin="0,0,0,8" CornerRadius="12" Padding="16,12" MaxWidth="560"
+                        Background="{StaticResource Surface3Brush}" BorderThickness="1"
+                        Visibility="{Binding Toast, Converter={StaticResource NotEmptyToVis}}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BorderBrush" Value="#5534D399" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ToastIsError}" Value="True">
+                                    <Setter Property="BorderBrush" Value="#88F87171" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.6" Color="Black" />
+                    </Border.Effect>
+                    <TextBlock Text="{Binding Toast}" TextWrapping="Wrap" FontSize="13" FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
