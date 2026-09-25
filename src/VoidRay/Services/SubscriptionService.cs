@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using VoidRay.Models;
 
 namespace VoidRay.Services;
@@ -25,6 +26,12 @@ public sealed class SubscriptionService
 
     public event Action<string>? Log;
 
+    /// <summary>Thrown when the panel does not know the link (wrong or deleted subscription).</summary>
+    public sealed class NotFoundException : Exception
+    {
+        public NotFoundException(string message) : base(message) { }
+    }
+
     public async Task<SubscriptionInfo> FetchAsync(string url, CancellationToken ct = default)
     {
         url = url.Trim();
@@ -39,8 +46,8 @@ public sealed class SubscriptionService
             request.Headers.Accept.ParseAdd("*/*");
 
             using var response = await _http.SendAsync(request, ct);
-            if (response.StatusCode == HttpStatusCode.NotFound)
-                throw new InvalidOperationException("Abonnement introuvable (404). Vérifie ton lien.");
+            if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.BadRequest or HttpStatusCode.Forbidden)
+                throw new NotFoundException($"Abonnement introuvable ({(int)response.StatusCode}).");
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException($"Le serveur a répondu {(int)response.StatusCode} {response.ReasonPhrase}.");
 
@@ -62,7 +69,8 @@ public sealed class SubscriptionService
             Log?.Invoke($"Aucun serveur avec l'agent « {ua} », nouvel essai…");
         }
 
-        await TryReadInfoEndpointAsync(uri, info!, ct);
+        if (!await TryReadHtmlPageAsync(uri, info!, ct))
+            await TryReadInfoEndpointAsync(uri, info!, ct);
         return info!;
     }
 
@@ -137,6 +145,72 @@ public sealed class SubscriptionService
         if (value.StartsWith("base64:", StringComparison.OrdinalIgnoreCase))
             return Base64.TryDecode(value[7..]) ?? value;
         return value;
+    }
+
+    private static readonly Regex DataBlock = new(@"<div[^>]*\bid=""data""[^>]*>", RegexOptions.IgnoreCase);
+    private static readonly Regex DataAttr = new(@"data-([a-z-]+)=""([^""]*)""", RegexOptions.IgnoreCase);
+    private static readonly Regex MailAttr = new(@"data-mail=""([^""]*)""", RegexOptions.IgnoreCase);
+    private static readonly Regex LinkAttr = new(@"data-link=""([^""]*)""", RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// 3x-ui serves a subscription page to browsers. Its data block carries what
+    /// the headers do not: account e-mails, last online time, support link, state.
+    /// </summary>
+    private async Task<bool> TryReadHtmlPageAsync(Uri uri, SubscriptionInfo info, CancellationToken ct)
+    {
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(10));
+            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) VoidRay/1.0");
+            request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml");
+            using var response = await _http.SendAsync(request, cts.Token);
+            if (!response.IsSuccessStatusCode)
+                return false;
+            var html = await response.Content.ReadAsStringAsync(cts.Token);
+            var block = DataBlock.Match(html);
+            if (!block.Success)
+                return false;
+
+            var data = DataAttr.Matches(block.Value).ToDictionary(
+                m => m.Groups[1].Value.ToLowerInvariant(),
+                m => WebUtility.HtmlDecode(m.Groups[2].Value).Trim());
+            string? D(string key) => data.TryGetValue(key, out var v) && v.Length > 0 ? v : null;
+            long N(string key) => long.TryParse(D(key), out var n) ? n : 0;
+
+            info.Enabled = D("enabled") != "0";
+            info.Sid = D("sid") ?? info.Sid;
+            info.SupportUrl ??= D("support");
+            if (N("last-online") > 0)
+                info.LastOnline = DateTimeOffset.FromUnixTimeMilliseconds(N("last-online"));
+            if (info.Upload + info.Download == 0)
+            {
+                info.Upload = N("upload-byte");
+                info.Download = N("download-byte");
+            }
+            if (info.Total == 0)
+                info.Total = N("total-byte");
+            if (info.Expire is null && N("expire") > 0)
+                info.Expire = DateTimeOffset.FromUnixTimeSeconds(N("expire"));
+
+            info.Emails = MailAttr.Matches(html)
+                .Select(m => WebUtility.HtmlDecode(m.Groups[1].Value).Trim())
+                .Where(e => e.Length > 0).Distinct().ToList();
+            info.Username ??= info.Emails.FirstOrDefault();
+
+            // Fallback when the plain subscription body could not be read.
+            if (info.Servers.Count == 0)
+            {
+                var links = string.Join('\n', LinkAttr.Matches(html).Select(m => WebUtility.HtmlDecode(m.Groups[1].Value)));
+                info.Servers = LinkParser.ParseSubscriptionBody(links, out _);
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>Marzban / Remnawave expose "{link}/info" with the username and status.</summary>

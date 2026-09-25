@@ -39,9 +39,14 @@ public static class LinkParser
                 continue;
             var profile = TryParse(line);
             if (profile is null)
+            {
                 unsupported++;
+            }
             else
+            {
+                profile.RawLink = line;
                 result.Add(profile);
+            }
         }
         return result;
     }

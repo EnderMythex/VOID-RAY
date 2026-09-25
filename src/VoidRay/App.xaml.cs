@@ -22,6 +22,10 @@ public partial class App : Application
         AppDomain.CurrentDomain.ProcessExit += (_, _) => SystemProxy.Restore();
         base.OnStartup(e);
 
+        var settings = SettingsStore.Load();
+        Loc.I.SetMode(settings.Language);
+        ThemeManager.Apply(settings.Theme, settings.Accent);
+
         MainWindow = new MainWindow();
         MainWindow.Show();
     }

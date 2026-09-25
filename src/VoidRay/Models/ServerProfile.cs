@@ -36,6 +36,12 @@ public sealed class ServerProfile
     /// <summary>Full Xray JSON config when the subscription delivers JSON instead of links.</summary>
     public string? RawXrayJson { get; set; }
 
+    /// <summary>Original share link, for the copy button.</summary>
+    public string? RawLink { get; set; }
+
+    /// <summary>True when <see cref="Services.FirewallBypass"/> rewrote this server.</summary>
+    public bool IsBypassPatched { get; set; }
+
     public string Key => $"{Protocol}|{Remark}|{Address}|{Port}";
 
     public string TransportLabel

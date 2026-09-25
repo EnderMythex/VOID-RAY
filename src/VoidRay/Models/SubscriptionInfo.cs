@@ -6,6 +6,11 @@ public sealed class SubscriptionInfo
     public string? Title { get; set; }
     public string? Username { get; set; }
     public string? Status { get; set; }
+    public string? Sid { get; set; }
+    public List<string> Emails { get; set; } = new();
+    public DateTimeOffset? LastOnline { get; set; }
+    /// <summary>False when the panel reports the account as disabled.</summary>
+    public bool Enabled { get; set; } = true;
 
     public long Upload { get; set; }
     public long Download { get; set; }

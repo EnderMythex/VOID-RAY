@@ -1,7 +1,16 @@
 # VOID-RAY
 
-Client VPN pour Windows (WPF / C# / .NET 8) avec une interface noire.
-L'utilisateur colle **son lien d'abonnement** et l'app récupère automatiquement :
+Client VPN pour Windows (WPF / C# / .NET 8) réservé aux abonnés **EnderrVPN**.
+
+Au lancement, l'app demande le lien d'abonnement : seuls les liens
+`https://sub.enderr.win/ender/…` valides sont acceptés (format vérifié, puis
+l'abonnement est interrogé sur le serveur). Si l'abonnement est supprimé plus tard,
+l'app revient à cet écran.
+
+L'interface reprend la page d'abonnement EnderrVPN : thème sombre / clair / auto,
+6 couleurs d'accent, français / anglais (ou automatique).
+
+Une fois connecté, l'app récupère automatiquement :
 
 - le **nom du profil** et le **nom d'utilisateur**
 - le **statut** (actif, expiré, quota atteint…)
@@ -13,6 +22,14 @@ L'utilisateur colle **son lien d'abonnement** et l'app récupère automatiquemen
 Compatible avec les panels courants : Marzban, Marzneshin, Remnawave, 3x-ui, Hiddify, etc.
 Ces infos viennent de l'en-tête standard `subscription-userinfo`, des en-têtes `profile-title`,
 `support-url`, `announce`, et de l'endpoint `/info` quand il existe.
+
+## Firewall Bypass automatique
+
+Quand un serveur nommé « Firewall Bypass » est détecté à l'import, il est reconfiguré
+pour passer par Cloudflare : adresse `172.67.186.245:443`, WebSocket + TLS,
+SNI / Host `xray.enderr.win`, path `/x7k2p` (ou celui de l'abonnement),
+empreinte `chrome`, ALPN `http/1.1`. Les valeurs sont dans
+`src/VoidRay/Services/FirewallBypass.cs`.
 
 ## Protocoles supportés
 
@@ -57,9 +74,11 @@ L'exécutable se trouve ensuite dans `publish\VoidRay.exe`.
 src/VoidRay/
 ├── Models/        ServerProfile, SubscriptionInfo, AppSettings
 ├── Services/      SubscriptionService (récupération + infos), LinkParser (vless/vmess/trojan/ss),
-│                  XrayConfigBuilder, XrayCore (processus), SystemProxy (registre), NetTools (ping, IP)
+│                  XrayConfigBuilder, XrayCore (processus), SystemProxy (registre), NetTools (ping, IP),
+│                  Brand (lien sub.enderr.win), FirewallBypass, ThemeManager, Loc (FR/EN), UsageHistory
 ├── ViewModels/    MainViewModel (MVVM), ServerItemViewModel
-├── Themes/        Theme.xaml (palette noire, styles)
+├── Controls/      TickGauge (jauge), UsageBars (conso par jour), Icon
+├── Themes/        Theme.xaml (styles) — couleurs appliquées par ThemeManager
 └── MainWindow.xaml
 ```
 
