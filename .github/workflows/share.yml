@@ -20,16 +20,37 @@ jobs:
       - name: Publish
         run: dotnet publish src/VoidRay -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 
-      - name: Upload to a temporary public link (72 h)
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path publish/VoidRay.exe -DestinationPath VoidRay-win-x64.zip
+
+      - name: Upload to a temporary public link
         shell: bash
         run: |
-          url=$(curl -fsS --retry 3 \
-            -F "reqtype=fileupload" -F "time=72h" \
-            -F "fileToUpload=@publish/VoidRay.exe" \
-            https://litterbox.catbox.moe/resources/internals/api.php)
-          echo "Download link: $url"
+          f=VoidRay-win-x64.zip
+          url=""
+          # 1) Litterbox: expires after 72 h
+          url=$(curl -fsS -F "reqtype=fileupload" -F "time=72h" -F "fileToUpload=@$f" \
+                https://litterbox.catbox.moe/resources/internals/api.php || true)
+          host="Litterbox (72 h)"
+          # 2) Gofile: removed after a period without downloads
+          if [[ "$url" != https* ]]; then
+            url=$(curl -fsS -F "file=@$f" https://upload.gofile.io/uploadfile \
+                  | python -c "import sys,json; print(json.load(sys.stdin)['data']['downloadPage'])" || true)
+            host="Gofile"
+          fi
+          # 3) 0x0.st: kept 30 days to 1 year depending on size
+          if [[ "$url" != https* ]]; then
+            url=$(curl -fsS -A "VoidRay-CI" -F "file=@$f" https://0x0.st || true)
+            host="0x0.st"
+          fi
+          if [[ "$url" != https* ]]; then
+            echo "::error::Every temporary host refused the upload"
+            exit 1
+          fi
+          echo "Download link ($host): $url"
           {
-            echo "### VoidRay.exe — lien public (expire dans 72 h)"
+            echo "### VoidRay-win-x64.zip — lien public ($host)"
             echo ""
             echo "$url"
           } >> "$GITHUB_STEP_SUMMARY"
