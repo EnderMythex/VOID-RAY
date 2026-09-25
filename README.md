@@ -96,6 +96,13 @@ curl -L -o android/app/libs/libv2ray.aar \
 cd android && ./gradlew assembleRelease
 ```
 
+## Extension Chrome
+
+Le dossier `extension/` contient l'extension Chrome (Manifest V3) : même style, même
+écran de lien, et un proxy HTTPS pour **les pages web uniquement**. Voir
+`extension/README.md` pour la mise en place côté 3x-ui et la publication sur le
+Chrome Web Store (le workflow **Extension** produit le zip à envoyer).
+
 ## Structure
 
 ```

@@ -1,0 +1,23 @@
+name: Extension
+
+on:
+  push:
+    paths: ["extension/**", ".github/workflows/extension.yml"]
+  workflow_dispatch:
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check syntax and manifest
+        run: |
+          for f in extension/src/*.js; do node --check "$f"; done
+          node -e "JSON.parse(require('fs').readFileSync('extension/manifest.json','utf8'))"
+      - name: Package for the Chrome Web Store
+        working-directory: extension
+        run: zip -r ../voidray-extension.zip manifest.json popup.html popup.css src icons _locales
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voidray-extension
+          path: voidray-extension.zip

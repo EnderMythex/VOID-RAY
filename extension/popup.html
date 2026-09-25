@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>VOID-RAY</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div class="ambient" aria-hidden="true"><i></i><i></i></div>
+
+<header class="topbar">
+  <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+    <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs>
+    <circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="3"/>
+    <circle cx="16" cy="16" r="4" fill="url(#lg)"/>
+    <path d="M1 31 31 1" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+  <div class="identity">
+    <h1 id="title">VOID-RAY</h1>
+    <b id="subtitle">by EnderrVPN</b>
+  </div>
+  <button class="iconbtn" id="palette-btn" type="button">
+    <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.7 1.6-1.5 0-.4-.2-.8-.5-1.1-.3-.3-.4-.6-.4-1 0-.8.7-1.4 1.5-1.4H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="11" cy="7.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="16" cy="9.5" r="1.1" fill="currentColor" stroke="none"/></svg>
+  </button>
+  <button class="iconbtn" id="lang-btn" type="button"><span class="lang">EN</span></button>
+  <button class="iconbtn" id="theme-btn" type="button"></button>
+  <div class="palette" id="palette"></div>
+</header>
+
+<!-- ============================================================ gate -->
+<main id="gate" hidden>
+  <section class="card gate">
+    <h2 data-i18n="gateTitle"></h2>
+    <p class="muted" data-i18n="gateText"></p>
+    <div class="shead"><h3 data-i18n="gateLabel"></h3><span class="rule"></span></div>
+    <form id="gate-form" class="urlrow">
+      <input id="gate-input" class="field" type="url" spellcheck="false" autocomplete="off" placeholder="https://sub.enderr.win/ender/…">
+      <button class="btn sq" id="gate-paste" type="button" title="Paste">
+        <svg viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2"/></svg>
+      </button>
+    </form>
+    <div class="error" id="gate-error" hidden></div>
+    <button class="btn accent wide" id="gate-submit" type="submit" form="gate-form">
+      <span id="gate-submit-txt" data-i18n="gateButton"></span>
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <p class="help"><span data-i18n="gateHelp"></span> <a id="gate-support" href="#" target="_blank" rel="noopener" data-i18n="gateContact"></a></p>
+  </section>
+</main>
+
+<!-- ============================================================ dashboard -->
+<main id="dash" hidden>
+  <section class="card conn">
+    <div class="shead"><h3 data-i18n="connection"></h3><span class="rule"></span></div>
+    <div class="conn-row">
+      <button class="power" id="power" type="button" aria-label="Connect">
+        <span class="pulse"></span>
+        <svg class="spinner" viewBox="0 0 120 120"><path d="M60 2a58 58 0 0 1 58 58"/></svg>
+        <svg class="ico" viewBox="0 0 24 24"><path d="M12 3v8M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      </button>
+      <div class="conn-text">
+        <div class="state" id="state"></div>
+        <div class="hint muted" id="hint"></div>
+        <select class="server" id="proxy-select"></select>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="flow"><div><div class="l" data-i18n="duration"></div><div class="v" id="elapsed">00:00</div></div></div>
+      <div class="flow"><div><div class="l" data-i18n="publicIp"></div><div class="v" id="ip">—</div></div></div>
+      <div class="flow"><div><div class="l" data-i18n="location"></div><div class="v" id="country">—</div></div></div>
+      <div class="flow"><div><div class="l" data-i18n="realDelay"></div><div class="v" id="delay">—</div></div></div>
+    </div>
+    <p class="scope muted" data-i18n="scopeNote"></p>
+  </section>
+
+  <section class="card usage">
+    <div class="hero">
+      <svg class="gauge" viewBox="0 0 200 152" role="img">
+        <g id="ticks"></g>
+        <g class="readout">
+          <text x="100" y="96" class="big" id="gauge-value">—</text>
+          <text x="100" y="116" class="cap" id="gauge-caption"></text>
+        </g>
+      </svg>
+      <span class="status" id="status"><span class="dot"></span><span class="txt">—</span></span>
+      <div class="flows">
+        <div class="flow">
+          <svg viewBox="0 0 24 24" style="color:var(--accent-2)"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          <div><div class="l" data-i18n="upload"></div><div class="v" id="up">—</div></div>
+        </div>
+        <div class="flow">
+          <svg viewBox="0 0 24 24" style="color:var(--accent)"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+          <div><div class="l" data-i18n="download"></div><div class="v" id="down">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="history">
+      <div class="hist-head"><span class="t" data-i18n="history"></span><span class="avg" id="hist-avg"></span></div>
+      <div id="hist-body"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="shead"><h3 data-i18n="link"></h3><span class="rule"></span></div>
+    <div class="urlrow">
+      <div class="urlbox" id="sub-url">—</div>
+      <button class="btn sq" id="refresh-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+      </button>
+      <button class="btn sq" id="change-btn" type="button">
+        <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+      </button>
+      <button class="btn accent" id="copy-btn" type="button">
+        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        <span data-i18n="copy"></span>
+      </button>
+    </div>
+  </section>
+
+  <section class="card details">
+    <div class="shead"><h3 data-i18n="details"></h3><span class="rule"></span></div>
+    <div class="rows" id="details"></div>
+  </section>
+
+  <footer>
+    <span id="foot-id"></span>
+    <span class="sep">·</span>
+    <a id="support" href="#" target="_blank" rel="noopener" data-i18n="support"></a>
+    <span class="fresh" id="fresh"><i></i><span id="fresh-txt"></span></span>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status"></div>
+<script type="module" src="src/popup.js"></script>
+</body>
+</html>
