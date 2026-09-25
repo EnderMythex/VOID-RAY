@@ -11,10 +11,23 @@ public partial class App : Application
 
     private Mutex? _singleInstance;
     private EventWaitHandle? _showSignal;
+    private bool _ownsMutex;
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _singleInstance = new Mutex(true, InstanceName, out var isFirst);
+        // After "restart as administrator" the previous instance may still be closing: wait for it.
+        var restarting = e.Args.Contains(Elevation.RestartArg);
+        _singleInstance = new Mutex(false, InstanceName);
+        bool isFirst;
+        try
+        {
+            isFirst = _singleInstance.WaitOne(restarting ? TimeSpan.FromSeconds(15) : TimeSpan.Zero);
+        }
+        catch (AbandonedMutexException)
+        {
+            isFirst = true;
+        }
+        _ownsMutex = isFirst;
         if (!isFirst)
         {
             // Already running (maybe hidden in the tray): ask it to show itself.
@@ -39,8 +52,11 @@ public partial class App : Application
         Loc.I.SetMode(settings.Language);
         ThemeManager.Apply(settings.Theme, settings.Accent);
 
-        MainWindow = new MainWindow();
-        MainWindow.Show();
+        var window = new MainWindow();
+        MainWindow = window;
+        if (e.Args.Contains(Elevation.ConnectArg))
+            window.Loaded += (_, _) => (window.DataContext as ViewModels.MainViewModel)?.ConnectOnStartup();
+        window.Show();
     }
 
     private static void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -60,6 +76,10 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         SystemProxy.Restore();
+        if (_ownsMutex)
+        {
+            try { _singleInstance?.ReleaseMutex(); } catch (ApplicationException) { }
+        }
         _singleInstance?.Dispose();
         base.OnExit(e);
     }

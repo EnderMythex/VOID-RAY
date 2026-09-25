@@ -23,6 +23,16 @@ Compatible avec les panels courants : Marzban, Marzneshin, Remnawave, 3x-ui, Hid
 Ces infos viennent de l'en-tête standard `subscription-userinfo`, des en-têtes `profile-title`,
 `support-url`, `announce`, et de l'endpoint `/info` quand il existe.
 
+## Modes de connexion (Windows)
+
+- **Tout le PC (TUN)** — par défaut : une carte réseau virtuelle « VOID-RAY » capture tout
+  le trafic (jeux comme Minecraft, launchers, Discord…). Elle est créée par
+  [sing-box](https://github.com/SagerNet/sing-box) (version épinglée, téléchargée au premier
+  usage) qui transmet tout à Xray. Nécessite les droits administrateur : l'app propose de
+  se relancer en administrateur et se connecte directement.
+- **Navigateurs (proxy)** : règle seulement le proxy système de Windows (navigateurs et
+  applis qui le respectent). Pas besoin d'être administrateur.
+
 ## Zone de notification
 
 Fermer la fenêtre (✕) ne quitte pas l'app : elle reste dans la zone de notification

@@ -4,6 +4,8 @@ public sealed class AppSettings
 {
     public string SubscriptionUrl { get; set; } = "";
     public string? SelectedServerKey { get; set; }
+    /// <summary>"tun" = the whole PC (games included), "proxy" = Windows system proxy only.</summary>
+    public string Mode { get; set; } = "tun";
     public int SocksPort { get; set; } = 10808;
     public int HttpPort { get; set; } = 10809;
     public SubscriptionInfo? CachedSubscription { get; set; }

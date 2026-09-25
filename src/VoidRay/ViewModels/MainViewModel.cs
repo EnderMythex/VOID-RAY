@@ -20,6 +20,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private readonly AppSettings _settings;
     private readonly SubscriptionService _subscriptions = new();
     private readonly XrayCore _core = new();
+    private readonly SingBoxCore _tun = new();
     private readonly DispatcherTimer _clock;
     private readonly DispatcherTimer _autoRefresh;
     private readonly DispatcherTimer _freshTimer;
@@ -71,6 +72,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _subscriptions.Log += AddLog;
         _core.Log += AddLog;
         _core.Crashed += () => _ui.BeginInvoke(OnCoreCrashed);
+        _tun.Log += AddLog;
+        _tun.Crashed += () => _ui.BeginInvoke(OnCoreCrashed);
 
         _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clock.Tick += (_, _) => Elapsed = Format.Duration(DateTime.Now - _connectedAt);
@@ -103,6 +106,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ToggleLogCommand = new RelayCommand(() => IsLogOpen = !IsLogOpen);
         CopyLogsCommand = new RelayCommand(() => Copy(string.Join(Environment.NewLine, Logs), Loc.T("lblLog")));
         ClearLogsCommand = new RelayCommand(() => Logs.Clear());
+        SetModeCommand = new RelayCommand(p => SetModeAsync(p as string));
 
         // Leftover proxy from a crash? Put the user's settings back.
         SystemProxy.Restore();
@@ -142,6 +146,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ToggleLogCommand { get; }
     public ICommand CopyLogsCommand { get; }
     public ICommand ClearLogsCommand { get; }
+    public ICommand SetModeCommand { get; }
+
+    /// <summary>Asks the window to quit (after an elevated instance was started).</summary>
+    public event Action? QuitRequested;
 
     // ================================================================ gate
 
@@ -529,7 +537,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                      nameof(UploadText), nameof(DownloadText), nameof(HasHistory), nameof(HistoryAverage),
                      nameof(ServerCount), nameof(FreshText), nameof(ThemeLabel), nameof(LangBadge),
                      nameof(GateButtonText), nameof(StateText), nameof(ActionHint), nameof(SelectedServerName),
-                     nameof(RealDelay),
+                     nameof(RealDelay), nameof(ModeHint),
                  })
             OnPropertyChanged(name);
         RebuildDetails();
@@ -639,7 +647,38 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => Set(ref _realDelay, value);
     }
 
-    public string LocalEndpoints => $"HTTP 127.0.0.1:{_httpPort}  ·  SOCKS5 127.0.0.1:{_socksPort}";
+    public bool IsTunMode => _settings.Mode != "proxy";
+    public bool IsProxyMode => !IsTunMode;
+    public string ModeHint => Loc.T(IsTunMode ? "modeTunHint" : "modeProxyHint");
+
+    public string LocalEndpoints => IsTunMode
+        ? $"TUN VOID-RAY  ·  SOCKS5 127.0.0.1:{_socksPort}"
+        : $"HTTP 127.0.0.1:{_httpPort}  ·  SOCKS5 127.0.0.1:{_socksPort}";
+
+    private async Task SetModeAsync(string? mode)
+    {
+        mode = mode == "proxy" ? "proxy" : "tun";
+        if (_settings.Mode == mode)
+            return;
+        var wasConnected = State == ConnectionState.Connected;
+        if (wasConnected)
+            await DisconnectAsync();
+        _settings.Mode = mode;
+        SettingsStore.Save(_settings);
+        OnPropertyChanged(nameof(IsTunMode));
+        OnPropertyChanged(nameof(IsProxyMode));
+        OnPropertyChanged(nameof(ModeHint));
+        OnPropertyChanged(nameof(LocalEndpoints));
+        if (wasConnected)
+            await ConnectAsync();
+    }
+
+    /// <summary>Called when the app was relaunched as administrator to connect in TUN mode.</summary>
+    public void ConnectOnStartup()
+    {
+        if (IsAuthenticated && State == ConnectionState.Disconnected)
+            _ = ConnectAsync();
+    }
 
     private Task ToggleConnectionAsync() =>
         State == ConnectionState.Connected ? DisconnectAsync() : ConnectAsync();
@@ -653,30 +692,55 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
+        // The TUN adapter needs administrator rights: offer to relaunch elevated.
+        if (IsTunMode && !Elevation.IsAdministrator())
+        {
+            var answer = MessageBox.Show(Loc.T("adminText"), "VOID-RAY", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (answer != MessageBoxResult.Yes)
+                return;
+            if (Elevation.StartElevated(connect: true))
+                QuitRequested?.Invoke();
+            else
+                ShowToast(Loc.T("adminDeclined"), error: true);
+            return;
+        }
+
         State = ConnectionState.Connecting;
         try
         {
             var exe = await _core.EnsureInstalledAsync();
+            var tunExe = IsTunMode ? await _tun.EnsureInstalledAsync() : null;
             _socksPort = NetTools.FindFreePort(_settings.SocksPort);
             _httpPort = NetTools.FindFreePort(_settings.HttpPort);
             OnPropertyChanged(nameof(LocalEndpoints));
 
+            var profile = tunExe is not null ? await PinServerAddressAsync(server.Profile) : server.Profile;
             await File.WriteAllTextAsync(AppPaths.XrayConfig,
-                XrayConfigBuilder.Build(server.Profile, _socksPort, _httpPort));
+                XrayConfigBuilder.Build(profile, _socksPort, _httpPort));
             AddLog($"Connexion à {server.Name} ({server.ProtocolTag} · {server.NetworkTag}"
                    + (server.SecurityTag is null ? "" : " · " + server.SecurityTag) + ")…");
             await _core.StartAsync(exe, AppPaths.XrayConfig, _socksPort);
-            SystemProxy.Enable("127.0.0.1", _httpPort);
+
+            if (tunExe is not null)
+            {
+                await File.WriteAllTextAsync(AppPaths.TunConfig, TunConfigBuilder.Build(_socksPort));
+                await _tun.StartAsync(tunExe, AppPaths.TunConfig);
+            }
+            else
+            {
+                SystemProxy.Enable("127.0.0.1", _httpPort);
+            }
 
             _connectedAt = DateTime.Now;
             Elapsed = "00:00";
             _clock.Start();
             State = ConnectionState.Connected;
-            AddLog("Connecté. Proxy système activé.");
+            AddLog(tunExe is not null ? "Connecté. Mode TUN : tout le PC passe par le VPN." : "Connecté. Proxy système activé.");
             _ = CheckExitAsync();
         }
         catch (Exception ex)
         {
+            _tun.Stop();
             _core.Stop();
             SystemProxy.Restore();
             State = ConnectionState.Disconnected;
@@ -685,17 +749,40 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// In TUN mode, Windows' DNS requests enter the tunnel, so Xray could not
+    /// resolve its own server name without looping. Resolve it now, before the
+    /// tunnel exists, and keep the name for TLS (SNI) and the Host header.
+    /// </summary>
+    private async Task<ServerProfile> PinServerAddressAsync(ServerProfile p)
+    {
+        if (p.RawXrayJson is not null || System.Net.IPAddress.TryParse(p.Address, out _))
+            return p;
+        var addresses = await System.Net.Dns.GetHostAddressesAsync(p.Address);
+        var ip = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                 ?? addresses.First();
+        var copy = System.Text.Json.JsonSerializer.Deserialize<ServerProfile>(System.Text.Json.JsonSerializer.Serialize(p))!;
+        if (!string.Equals(p.Security, "none", StringComparison.OrdinalIgnoreCase))
+            copy.Sni ??= p.Address;
+        if (p.Network is "ws" or "httpupgrade" or "xhttp" or "splithttp")
+            copy.Host ??= p.Address;
+        copy.Address = ip.ToString();
+        AddLog($"Serveur {p.Address} → {copy.Address}");
+        return copy;
+    }
+
     private async Task DisconnectAsync()
     {
         State = ConnectionState.Disconnecting;
         await Task.Run(() =>
         {
+            _tun.Stop();
             SystemProxy.Restore();
             _core.Stop();
         });
         ResetConnectionInfo();
         State = ConnectionState.Disconnected;
-        AddLog("Déconnecté. Proxy système restauré.");
+        AddLog("Déconnecté.");
     }
 
     private async Task ReconnectAsync()
@@ -726,6 +813,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         if (State != ConnectionState.Connected)
             return;
+        _tun.Stop();
+        _core.Stop();
         SystemProxy.Restore();
         ResetConnectionInfo();
         State = ConnectionState.Disconnected;
@@ -817,6 +906,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _clock.Stop();
         _autoRefresh.Stop();
         _freshTimer.Stop();
+        _tun.Dispose();
         SystemProxy.Restore();
         _core.Dispose();
     }

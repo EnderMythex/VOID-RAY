@@ -678,6 +678,43 @@
                                 </StackPanel>
                             </Grid>
 
+                            <!-- connection mode -->
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="6" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button Command="{Binding SetModeCommand}" CommandParameter="tun" MinHeight="34">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource Btn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsTunMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock Text="{Binding [modeTun], Source={x:Static svc:Loc.I}}" />
+                                </Button>
+                                <Button Grid.Column="2" Command="{Binding SetModeCommand}" CommandParameter="proxy" MinHeight="34">
+                                    <Button.Style>
+                                        <Style TargetType="Button" BasedOn="{StaticResource Btn}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsProxyMode}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <TextBlock Text="{Binding [modeProxy], Source={x:Static svc:Loc.I}}" />
+                                </Button>
+                            </Grid>
+                            <TextBlock Text="{Binding ModeHint}" FontSize="11.5" Margin="0,6,0,0"
+                                       Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+
                             <UniformGrid Columns="4" Margin="0,14,0,0">
                                 <Border Style="{StaticResource Flow}" Margin="0,0,4,0">
                                     <StackPanel>

@@ -130,6 +130,16 @@ public sealed class Loc : INotifyPropertyChanged
         ["errCore"] = ("The Xray engine stopped. See the log.", "Le moteur Xray s'est arrêté. Consulte le journal."),
         ["failed"] = ("failed", "échec"),
 
+        // ---- connection mode
+        ["modeTun"] = ("Whole PC (TUN)", "Tout le PC (TUN)"),
+        ["modeProxy"] = ("Browsers (proxy)", "Navigateurs (proxy)"),
+        ["modeTunHint"] = ("Every app and game goes through the VPN.", "Toutes les applis et les jeux passent par le VPN."),
+        ["modeProxyHint"] = ("Only apps that follow the Windows proxy (browsers…).", "Seulement les applis qui suivent le proxy Windows (navigateurs…)."),
+        ["adminText"] = ("TUN mode needs administrator rights to create the virtual network card.\n\nRestart VOID-RAY as administrator and connect?",
+                         "Le mode TUN a besoin des droits administrateur pour créer la carte réseau virtuelle.\n\nRedémarrer VOID-RAY en administrateur et se connecter ?"),
+        ["adminDeclined"] = ("Administrator rights refused. Use Browsers (proxy) mode or try again.",
+                             "Droits administrateur refusés. Utilise le mode Navigateurs (proxy) ou réessaie."),
+
         // ---- tray
         ["trayOpen"] = ("Open VOID-RAY", "Ouvrir VOID-RAY"),
         ["trayConnect"] = ("Connect", "Se connecter"),

@@ -9,6 +9,7 @@ public static class AppPaths
 
     public static string Settings => Path.Combine(Data, "settings.json");
     public static string XrayConfig => Path.Combine(Data, "config.json");
+    public static string TunConfig => Path.Combine(Data, "tun.json");
     public static string ProxyBackup => Path.Combine(Data, "proxy-backup.json");
 
     private static string Ensure(string dir)

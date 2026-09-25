@@ -17,6 +17,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         StateChanged += (_, _) => ApplyWindowState();
         Loaded += (_, _) => _tray ??= new TrayIcon(this, (MainViewModel)DataContext);
+        ((MainViewModel)DataContext).QuitRequested += Quit;
         ((INotifyCollectionChanged)LogList.Items).CollectionChanged += (_, _) =>
         {
             if (LogList.Items.Count > 0)
