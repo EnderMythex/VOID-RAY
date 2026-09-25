@@ -4,3 +4,4 @@ obj/
 *.user
 *.suo
 publish/
+.claude/settings.local.json

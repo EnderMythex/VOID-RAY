@@ -19,7 +19,18 @@ permissions:
   contents: write
 
 jobs:
+  # Removes a previous release (and its tag) with the same version first, so a
+  # version can be re-published cleanly.
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete the existing release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release delete "v${VERSION#v}" --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
+
   windows:
+    needs: cleanup
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,6 +51,7 @@ jobs:
           path: out/*
 
   android:
+    needs: cleanup
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -85,6 +97,7 @@ jobs:
           path: out/*
 
   extension:
+    needs: cleanup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,10 +125,6 @@ jobs:
       - run: ls -la dist
       - name: Tag name
         run: echo "TAG=v${VERSION#v}" >> "$GITHUB_ENV"
-      - name: Replace an existing release with the same version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release delete "$TAG" --cleanup-tag --yes --repo "$GITHUB_REPOSITORY" || true
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG }}
