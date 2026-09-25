@@ -1,0 +1,35 @@
+name: Share
+
+# Builds VoidRay.exe and uploads it to a temporary public host (Litterbox,
+# 72 h). The link is written in the run summary. Run it from the Actions tab.
+on:
+  workflow_dispatch:
+  push:
+    paths: [".github/workflows/share.yml"]
+
+jobs:
+  share:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish
+        run: dotnet publish src/VoidRay -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+
+      - name: Upload to a temporary public link (72 h)
+        shell: bash
+        run: |
+          url=$(curl -fsS --retry 3 \
+            -F "reqtype=fileupload" -F "time=72h" \
+            -F "fileToUpload=@publish/VoidRay.exe" \
+            https://litterbox.catbox.moe/resources/internals/api.php)
+          echo "Download link: $url"
+          {
+            echo "### VoidRay.exe — lien public (expire dans 72 h)"
+            echo ""
+            echo "$url"
+          } >> "$GITHUB_STEP_SUMMARY"
