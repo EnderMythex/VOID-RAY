@@ -359,14 +359,14 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         private set => Set(ref _history, value);
     }
 
-    public bool HasHistory => _history.Count(v => v.HasValue) >= 2;
+    public bool HasHistory => _history.Any(v => v.HasValue);
 
     public string HistoryAverage
     {
         get
         {
             var known = _history.Where(v => v.HasValue).Select(v => v!.Value).ToList();
-            return known.Count >= 2 ? Loc.T("histAvg", Format.Bytes(known.Average())) : "";
+            return known.Count >= 1 ? Loc.T("histAvg", Format.Bytes(known.Average())) : "";
         }
     }
 

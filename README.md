@@ -23,6 +23,13 @@ Compatible avec les panels courants : Marzban, Marzneshin, Remnawave, 3x-ui, Hid
 Ces infos viennent de l'en-tête standard `subscription-userinfo`, des en-têtes `profile-title`,
 `support-url`, `announce`, et de l'endpoint `/info` quand il existe.
 
+## Zone de notification
+
+Fermer la fenêtre (✕) ne quitte pas l'app : elle reste dans la zone de notification
+et le VPN continue de tourner. Clic sur l'icône pour la rouvrir ; clic droit pour
+se connecter / déconnecter ou **Quitter**. L'icône porte un point vert quand le
+VPN est actif. Relancer VoidRay.exe rouvre la fenêtre existante.
+
 ## Firewall Bypass automatique
 
 Quand un serveur nommé « Firewall Bypass » est détecté à l'import, il est reconfiguré

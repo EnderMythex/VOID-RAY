@@ -129,6 +129,15 @@ public sealed class Loc : INotifyPropertyChanged
                             "Connecté, mais aucun trafic ne passe. Essaie un autre serveur."),
         ["errCore"] = ("The Xray engine stopped. See the log.", "Le moteur Xray s'est arrêté. Consulte le journal."),
         ["failed"] = ("failed", "échec"),
+
+        // ---- tray
+        ["trayOpen"] = ("Open VOID-RAY", "Ouvrir VOID-RAY"),
+        ["trayConnect"] = ("Connect", "Se connecter"),
+        ["trayDisconnect"] = ("Disconnect", "Se déconnecter"),
+        ["trayQuit"] = ("Quit", "Quitter"),
+        ["trayStillRunning"] = ("VOID-RAY keeps running in the notification area. Right-click the icon to quit.",
+                                "VOID-RAY reste ouvert dans la zone de notification. Clic droit sur l'icône pour quitter."),
+        ["closeToTray"] = ("Close to notification area", "Fermer dans la zone de notification"),
     };
 
     private string _mode = "auto";

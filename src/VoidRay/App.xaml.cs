@@ -6,17 +6,30 @@ namespace VoidRay;
 
 public partial class App : Application
 {
+    private const string InstanceName = "VoidRay.SingleInstance";
+    private const string ShowEventName = "VoidRay.ShowWindow";
+
     private Mutex? _singleInstance;
+    private EventWaitHandle? _showSignal;
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        _singleInstance = new Mutex(true, "VoidRay.SingleInstance", out var isFirst);
+        _singleInstance = new Mutex(true, InstanceName, out var isFirst);
         if (!isFirst)
         {
-            MessageBox.Show("VOID-RAY est déjà ouvert.", "VOID-RAY", MessageBoxButton.OK, MessageBoxImage.Information);
+            // Already running (maybe hidden in the tray): ask it to show itself.
+            try { EventWaitHandle.OpenExisting(ShowEventName).Set(); }
+            catch (WaitHandleCannotBeOpenedException) { }
             Shutdown();
             return;
         }
+
+        _showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        new Thread(() =>
+        {
+            while (_showSignal.WaitOne())
+                Dispatcher.BeginInvoke(() => (MainWindow as MainWindow)?.ShowFromTray());
+        }) { IsBackground = true, Name = "VoidRay show signal" }.Start();
 
         DispatcherUnhandledException += OnUnhandled;
         AppDomain.CurrentDomain.ProcessExit += (_, _) => SystemProxy.Restore();
@@ -38,6 +51,8 @@ public partial class App : Application
 
     protected override void OnSessionEnding(SessionEndingCancelEventArgs e)
     {
+        // Windows is logging off: really quit instead of hiding to the tray.
+        (MainWindow as MainWindow)?.Quit();
         SystemProxy.Restore();
         base.OnSessionEnding(e);
     }

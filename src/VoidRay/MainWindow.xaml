@@ -168,7 +168,7 @@
                         <ctl:Icon x:Name="MaximizeIcon" Data="{StaticResource IcoMax}" Size="13" />
                     </Button>
                     <Button Style="{StaticResource WinCloseBtn}" Click="Close_Click"
-                            ToolTip="{Binding [close], Source={x:Static svc:Loc.I}}">
+                            ToolTip="{Binding [closeToTray], Source={x:Static svc:Loc.I}}">
                         <ctl:Icon Data="{StaticResource IcoClose}" Size="14" />
                     </Button>
                 </StackPanel>
