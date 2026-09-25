@@ -113,6 +113,22 @@ Le dossier `extension/` contient l'extension Chrome (Manifest V3) : même style,
 `extension/README.md` pour la mise en place côté 3x-ui et la publication sur le
 Chrome Web Store (le workflow **Extension** produit le zip à envoyer).
 
+## Mises à jour et releases
+
+Les apps PC et Android ont un bouton **Vérifier les mises à jour** (en bas) qui lit la
+dernière release GitHub, télécharge le bon fichier et l'installe (le PC remplace son exe
+et redémarre ; Android ouvre l'installateur). Le repo doit être **public** pour que les
+utilisateurs puissent télécharger les releases.
+
+Publier une nouvelle version :
+1. Mettre à jour `.github/release-notes.md` (texte affiché dans la release et dans l'app).
+2. **Actions → Release → Run workflow** et entrer la version (ex. `1.2.0`),
+   ou pousser un tag `v1.2.0`.
+
+Le workflow construit `VoidRay-win-x64.exe`, les APK `VoidRay-android-*.apk` et
+`voidray-extension.zip`, puis crée la release. La version doit être plus grande que la
+précédente (Android refuse d'installer une version plus ancienne).
+
 ## Structure
 
 ```
