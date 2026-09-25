@@ -75,6 +75,27 @@ dotnet publish src/VoidRay -c Release -r win-x64 --self-contained true -p:Publis
 
 L'exécutable se trouve ensuite dans `publish\VoidRay.exe`.
 
+## Android (APK)
+
+Le dossier `android/` contient la version Android (Kotlin + Jetpack Compose), avec les
+mêmes fonctions : écran de lien `sub.enderr.win`, tableau de bord, thèmes, couleurs,
+FR/EN et Firewall Bypass automatique. Le VPN utilise le `VpnService` d'Android et
+Xray-core (`libv2ray.aar` de AndroidLibXrayLite) avec son entrée TUN. Une notification
+permet de se déconnecter, et une tuile « Réglages rapides » connecte ou déconnecte sans
+ouvrir l'app.
+
+Les APK sont produits par GitHub Actions (workflow **Android**, artefact
+`VoidRay-android`) : `app-arm64-v8a-release.apk` convient à presque tous les
+téléphones récents, `app-universal-release.apk` à tous.
+
+Build local (Android SDK + JDK 17) :
+
+```bash
+curl -L -o android/app/libs/libv2ray.aar \
+  https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
+cd android && ./gradlew assembleRelease
+```
+
 ## Structure
 
 ```
