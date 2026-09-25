@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
     <Resource Include="Assets\voidray.ico" />
     <None Remove="Assets\voidray.png" />
   </ItemGroup>
