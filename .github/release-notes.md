@@ -9,7 +9,6 @@
 
 ## Nouveautés
 
-- Bouton **Vérifier les mises à jour** (PC et Android) : télécharge et installe la dernière version publiée ici.
-- Windows : mode **Tout le PC (TUN)** — les jeux (Minecraft…) passent aussi par le VPN.
-- Windows : l'app reste dans la zone de notification quand on ferme la fenêtre.
-- Extension Chrome : proxy HTTPS pour les pages web uniquement.
+- Android : nouvel écran d'accueil — sphère animée, choix du serveur, **glisser pour se connecter** et bouton réglages.
+- Android : serveurs, abonnement et réglages s'ouvrent en panneaux depuis le bas, qu'on ferme en les **faisant glisser vers le bas**.
+- Android : réglages regroupés (thème, couleur, langue, lien d'abonnement, mises à jour).
