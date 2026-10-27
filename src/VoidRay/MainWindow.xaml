@@ -5,14 +5,14 @@
         xmlns:svc="clr-namespace:VoidRay.Services"
         xmlns:ctl="clr-namespace:VoidRay.Controls"
         Title="VOID-RAY" Icon="Assets/voidray.ico"
-        Width="1280" Height="820" MinWidth="1060" MinHeight="700"
+        Width="1280" Height="820" MinWidth="1080" MinHeight="720"
         WindowStyle="None" ResizeMode="CanResize" WindowStartupLocation="CenterScreen"
         Background="{DynamicResource BgBrush}" Foreground="{DynamicResource InkBrush}"
         FontFamily="{StaticResource UiFont}" FontSize="13"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" GlassFrameThickness="0"
+        <WindowChrome CaptionHeight="60" ResizeBorderThickness="6" GlassFrameThickness="0"
                       CornerRadius="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
@@ -36,129 +36,155 @@
         <!-- Status chip (ok = accent, warn, alert) -->
         <Style x:Key="Chip" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
             <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentTextBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="8,2" />
-            <Setter Property="TextElement.FontSize" Value="10.5" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="TextElement.FontSize" Value="11" />
             <Setter Property="TextElement.FontWeight" Value="SemiBold" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Tone}" Value="Warn">
                     <Setter Property="Background" Value="{DynamicResource WarnSoftBrush}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource WarnLineBrush}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource WarnBrush}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Tone}" Value="Alert">
                     <Setter Property="Background" Value="{DynamicResource AlertSoftBrush}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource AlertLineBrush}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource AlertBrush}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Small "flow" tile: icon + LABEL + mono value -->
-        <Style x:Key="Flow" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource FieldBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Line2Brush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="11,9" />
+        <!-- Status colour of the subscription (ok / warn / alert) -->
+        <Style x:Key="StatusTint" TargetType="StackPanel">
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding StatusTone}" Value="Warn">
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource WarnBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StatusTone}" Value="Alert">
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource AlertBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
-        <Style x:Key="FlowLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="9.5" />
-            <Setter Property="FontWeight" Value="SemiBold" />
+
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
             <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
         </Style>
-        <Style x:Key="FlowValue" TargetType="TextBlock">
+        <Style x:Key="StatValue" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
-            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="FontSize" Value="17" />
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="Margin" Value="0,4,0,0" />
         </Style>
+
+        <!-- Visible only on one inspector tab: Tag = tab name -->
+        <Style x:Key="TabPage" TargetType="FrameworkElement">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="overview" />
+                        <Condition Binding="{Binding Tab}" Value="overview" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="servers" />
+                        <Condition Binding="{Binding Tab}" Value="servers" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="plan" />
+                        <Condition Binding="{Binding Tab}" Value="plan" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Visibility" Value="Visible" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The brand mark -->
+        <DataTemplate x:Key="LogoMark">
+            <Viewbox>
+                <Canvas Width="32" Height="32">
+                    <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
+                             Stroke="{DynamicResource BrandGradient}" StrokeThickness="3" />
+                    <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
+                             Fill="{DynamicResource BrandGradient}" />
+                    <Line X1="1" Y1="31" X2="31" Y2="1" Stroke="{DynamicResource AccentBrush}"
+                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Canvas>
+            </Viewbox>
+        </DataTemplate>
+
+        <Storyboard x:Key="AuroraDrift">
+            <DoubleAnimation Storyboard.TargetName="AuroraA" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                             From="-60" To="140" Duration="0:0:19" AutoReverse="True" RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="AuroraA" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                             From="-40" To="80" Duration="0:0:23" AutoReverse="True" RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="AuroraB" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                             From="80" To="-120" Duration="0:0:21" AutoReverse="True" RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="AuroraB" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)"
+                             From="60" To="-70" Duration="0:0:17" AutoReverse="True" RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="AuroraC" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                             From="-90" To="90" Duration="0:0:27" AutoReverse="True" RepeatBehavior="Forever">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
     </Window.Resources>
 
-    <Grid x:Name="Root" ClipToBounds="True">
-        <!-- Ambient glows, as on the page -->
-        <Ellipse Width="1000" Height="1000" Margin="-380,-440,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
-                 Fill="{DynamicResource AmbientABrush}" Opacity="{DynamicResource AmbientOpacity}" IsHitTestVisible="False" />
-        <Ellipse Width="900" Height="900" Margin="0,0,-360,-380" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                 Fill="{DynamicResource AmbientBBrush}" Opacity="{DynamicResource AmbientOpacity}" IsHitTestVisible="False" />
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard Storyboard="{StaticResource AuroraDrift}" />
+        </EventTrigger>
+    </Window.Triggers>
 
-        <Grid Margin="14,10,14,12">
+    <Grid x:Name="Root" ClipToBounds="True">
+        <!-- ============================================================ aurora -->
+        <Grid IsHitTestVisible="False" Opacity="{DynamicResource AuroraOpacity}">
+            <Ellipse x:Name="AuroraA" Width="1100" Height="1100" Margin="-420,-520,0,0"
+                     HorizontalAlignment="Left" VerticalAlignment="Top" Fill="{DynamicResource AuroraABrush}">
+                <Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="AuroraB" Width="1000" Height="1000" Margin="0,0,-380,-460"
+                     HorizontalAlignment="Right" VerticalAlignment="Bottom" Fill="{DynamicResource AuroraBBrush}">
+                <Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse x:Name="AuroraC" Width="760" Height="760" Margin="-160,0,0,-520"
+                     HorizontalAlignment="Left" VerticalAlignment="Bottom" Fill="{DynamicResource AuroraCBrush}" Opacity="0.55">
+                <Ellipse.RenderTransform><TranslateTransform /></Ellipse.RenderTransform>
+            </Ellipse>
+        </Grid>
+
+        <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="46" />
+                <RowDefinition Height="60" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="44" />
             </Grid.RowDefinitions>
 
-            <!-- =========================================================== top bar -->
-            <DockPanel Grid.Row="0" LastChildFill="True">
+            <!-- ============================================================ title bar -->
+            <DockPanel Grid.Row="0" Margin="24,0,12,0" LastChildFill="True">
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ToggleButton x:Name="PaletteButton" Style="{StaticResource IconBtn}"
-                                  IsChecked="{Binding IsPaletteOpen, Mode=TwoWay}"
-                                  ToolTip="{Binding [accentLabel], Source={x:Static svc:Loc.I}}">
-                        <ctl:Icon Data="{StaticResource IcoPalette}" />
-                    </ToggleButton>
-                    <Button Style="{StaticResource IconBtn}" Command="{Binding CycleLangCommand}"
-                            ToolTip="{Binding [langLabel], Source={x:Static svc:Loc.I}}">
-                        <TextBlock Text="{Binding LangBadge}" FontFamily="{StaticResource MonoFont}"
-                                   FontSize="10.5" FontWeight="Bold" />
+                    <Button Style="{StaticResource BtnAccent}" MinHeight="32" Padding="14,0" Margin="0,0,10,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True" Command="{Binding CheckUpdatesCommand}"
+                            Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <ctl:Icon Data="{StaticResource IcoDown}" Size="14" StrokeThickness="2.2" Margin="0,0,7,0" />
+                            <TextBlock Text="{Binding UpdateLabel}" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource IconBtn}" Command="{Binding CycleThemeCommand}"
-                            ToolTip="{Binding ThemeLabel}">
-                        <Grid>
-                            <ctl:Icon Data="{StaticResource IcoAutoRing}">
-                                <ctl:Icon.Style>
-                                    <Style TargetType="ctl:Icon">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ThemeMode}" Value="auto">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ctl:Icon.Style>
-                            </ctl:Icon>
-                            <ctl:Icon Data="{StaticResource IcoAutoHalf}" Filled="True">
-                                <ctl:Icon.Style>
-                                    <Style TargetType="ctl:Icon">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ThemeMode}" Value="auto">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ctl:Icon.Style>
-                            </ctl:Icon>
-                            <ctl:Icon Data="{StaticResource IcoMoon}">
-                                <ctl:Icon.Style>
-                                    <Style TargetType="ctl:Icon">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ThemeMode}" Value="dark">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ctl:Icon.Style>
-                            </ctl:Icon>
-                            <ctl:Icon Data="{StaticResource IcoSun}">
-                                <ctl:Icon.Style>
-                                    <Style TargetType="ctl:Icon">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ThemeMode}" Value="light">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ctl:Icon.Style>
-                            </ctl:Icon>
-                        </Grid>
-                    </Button>
-
-                    <Rectangle Width="1" Height="22" Margin="12,0,6,0" Fill="{DynamicResource LineBrush}" />
                     <Button Style="{StaticResource WinBtn}" Click="Minimize_Click"
                             ToolTip="{Binding [minimize], Source={x:Static svc:Loc.I}}">
                         <ctl:Icon Data="{StaticResource IcoMin}" Size="14" />
@@ -174,24 +200,15 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Viewbox Width="30" Height="30" Margin="2,0,11,0">
-                        <Canvas Width="32" Height="32">
-                            <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
-                                     Stroke="{DynamicResource BrandGradient}" StrokeThickness="3" />
-                            <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
-                                     Fill="{DynamicResource BrandGradient}" />
-                            <Line X1="1" Y1="31" X2="31" Y2="1" Stroke="{DynamicResource AccentBrush}"
-                                  StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                        </Canvas>
-                    </Viewbox>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="{Binding IdentityTitle}" FontSize="17" FontWeight="SemiBold"
-                                   TextTrimming="CharacterEllipsis" />
-                        <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="11.5"
-                                   Foreground="{DynamicResource MutedBrush}">
+                    <ContentControl ContentTemplate="{StaticResource LogoMark}" Width="30" Height="30" Focusable="False" />
+                    <TextBlock Text="VOID-RAY" FontFamily="{StaticResource DisplayFont}" FontSize="21" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="12,0,0,1" />
+                    <Border CornerRadius="10" Background="{DynamicResource SurfaceBrush}" Padding="10,4" Margin="14,0,0,0"
+                            VerticalAlignment="Center">
+                        <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="11" Foreground="{DynamicResource MutedBrush}">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
-                                    <Setter Property="Text" Value="{Binding Sid}" />
+                                    <Setter Property="Text" Value="{Binding IdentityTitle}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsAuthenticated}" Value="False">
                                             <Setter Property="Text" Value="by EnderrVPN" />
@@ -200,625 +217,298 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                    </StackPanel>
+                    </Border>
                 </StackPanel>
             </DockPanel>
 
-            <!-- Accent palette -->
-            <Popup Grid.Row="0" PlacementTarget="{Binding ElementName=PaletteButton}" Placement="Bottom"
-                   VerticalOffset="6" HorizontalOffset="-208" StaysOpen="False" AllowsTransparency="True"
-                   IsOpen="{Binding IsPaletteOpen, Mode=TwoWay}" PopupAnimation="Fade">
-                <Border Background="{DynamicResource BgBrush}" BorderBrush="{DynamicResource LineBrush}"
-                        BorderThickness="1" Padding="8">
-                    <ItemsControl ItemsSource="{Binding Accents}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:AccentOption}">
-                                <Button Command="{Binding DataContext.SetAccentCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding}" ToolTip="{Binding Name}" Margin="3"
-                                        Cursor="Hand" FocusVisualStyle="{x:Null}">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <Border x:Name="Ring" Width="32" Height="32" BorderThickness="1"
-                                                        BorderBrush="Transparent" />
-                                                <Border Width="26" Height="26" Background="{Binding Swatch}"
-                                                        BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" />
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource InkBrush}" />
-                                                </DataTrigger>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource MutedBrush}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Border>
-            </Popup>
+            <!-- ============================================================ GATE -->
+            <Grid Grid.Row="1" Margin="40,0,40,0"
+                  Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="500" />
+                </Grid.ColumnDefinitions>
 
-            <!-- =========================================================== GATE -->
-            <Grid Grid.Row="1" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}, ConverterParameter=invert}">
-                <Border Style="{StaticResource Card}" Width="460" VerticalAlignment="Center" HorizontalAlignment="Center"
-                        Padding="30,28" Margin="0,0,0,40">
-                    <StackPanel>
-                        <Viewbox Width="54" Height="54" HorizontalAlignment="Left">
-                            <Canvas Width="32" Height="32">
-                                <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
-                                         Stroke="{DynamicResource BrandGradient}" StrokeThickness="3" />
-                                <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
-                                         Fill="{DynamicResource BrandGradient}" />
-                                <Line X1="1" Y1="31" X2="31" Y2="1" Stroke="{DynamicResource AccentBrush}"
-                                      StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                            </Canvas>
-                        </Viewbox>
-                        <TextBlock Text="{Binding [gateTitle], Source={x:Static svc:Loc.I}}" FontSize="21"
-                                   FontWeight="SemiBold" Margin="0,18,0,6" />
-                        <TextBlock Text="{Binding [gateText], Source={x:Static svc:Loc.I}}" FontSize="12.5"
-                                   Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="19" />
+                <Viewbox MaxWidth="680" MaxHeight="680" Margin="0,-30,0,0">
+                    <ContentControl Template="{StaticResource OrbTemplate}" Tag="Disconnected" Focusable="False" Margin="120" />
+                </Viewbox>
 
-                        <ContentControl Style="{StaticResource SectionHead}" Margin="0,22,0,8"
-                                        Content="{Binding [gateLabel], Source={x:Static svc:Loc.I}}" />
-                        <TextBox x:Name="GateInput" Style="{StaticResource Input}"
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,40">
+                    <TextBlock Text="{Binding [gateHeadline], Source={x:Static svc:Loc.I}}" FontFamily="{StaticResource DisplayFont}"
+                               FontSize="46" FontWeight="SemiLight" TextWrapping="Wrap" LineHeight="52" />
+                    <TextBlock Text="{Binding [gateText], Source={x:Static svc:Loc.I}}" FontSize="14"
+                               Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,14,0,26" />
+
+                    <Grid>
+                        <TextBox x:Name="GateInput" Style="{StaticResource Input}" Padding="16,0,56,0"
                                  Text="{Binding GateUrl, UpdateSourceTrigger=PropertyChanged}"
                                  Tag="{x:Static svc:Brand.LinkExample}">
                             <TextBox.InputBindings>
                                 <KeyBinding Key="Enter" Command="{Binding SignInCommand}" />
                             </TextBox.InputBindings>
                         </TextBox>
+                        <Button Style="{StaticResource IconBtn}" HorizontalAlignment="Right" Margin="0,0,8,0"
+                                Click="Paste_Click" ToolTip="Paste">
+                            <ctl:Icon Data="{StaticResource IcoPaste}" Size="17" />
+                        </Button>
+                    </Grid>
 
-                        <Border Margin="0,8,0,0" Padding="10,8" Background="{DynamicResource AlertSoftBrush}"
-                                BorderBrush="{DynamicResource AlertLineBrush}" BorderThickness="1"
-                                Visibility="{Binding GateError, Converter={StaticResource NotEmptyToVis}}">
-                            <TextBlock Text="{Binding GateError}" Foreground="{DynamicResource AlertBrush}"
-                                       FontSize="12" TextWrapping="Wrap" />
-                        </Border>
+                    <TextBlock Text="{Binding GateError}" Foreground="{DynamicResource AlertBrush}" FontSize="13"
+                               TextWrapping="Wrap" Margin="6,10,0,0"
+                               Visibility="{Binding GateError, Converter={StaticResource NotEmptyToVis}}" />
 
-                        <Button Style="{StaticResource BtnAccent}" Margin="0,12,0,0" HorizontalAlignment="Stretch"
-                                Command="{Binding SignInCommand}">
+                    <Grid Margin="0,16,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource BtnSolid}" MinHeight="64" Command="{Binding SignInCommand}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding GateButtonText}" FontSize="13" VerticalAlignment="Center" />
-                                <ctl:Icon Data="{StaticResource IcoArrowRight}" Size="15" Margin="8,0,0,0" />
+                                <TextBlock Text="{Binding GateButtonText}" VerticalAlignment="Center" />
+                                <ctl:Icon Data="{StaticResource IcoArrowRight}" Size="18" StrokeThickness="2.1" Margin="10,0,0,0" />
                             </StackPanel>
                         </Button>
+                        <Button Grid.Column="1" Style="{StaticResource RoundSolid}" Margin="14,0,0,0"
+                                Command="{Binding ToggleSettingsCommand}" ToolTip="{Binding [settings], Source={x:Static svc:Loc.I}}">
+                            <ctl:Icon Data="{StaticResource IcoGear}" Size="24" />
+                        </Button>
+                    </Grid>
 
-                        <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
-                            <TextBlock Text="{Binding [gateHelp], Source={x:Static svc:Loc.I}}" FontSize="11.5"
-                                       Foreground="{DynamicResource MutedBrush}" Margin="0,0,6,0" />
-                            <Button Style="{StaticResource LinkBtn}" Command="{Binding OpenSupportCommand}">
-                                <TextBlock Text="{Binding [gateContact], Source={x:Static svc:Loc.I}}" FontSize="11.5" />
-                            </Button>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                            <TextBlock Text="{Binding CurrentVersion}" FontFamily="{StaticResource MonoFont}" FontSize="11"
-                                       Foreground="{DynamicResource MutedBrush}" Margin="0,0,8,0" />
-                            <Button Style="{StaticResource LinkBtn}" Command="{Binding CheckUpdatesCommand}">
-                                <TextBlock Text="{Binding UpdateLabel}" FontSize="11" />
-                            </Button>
-                        </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="6,22,0,0">
+                        <TextBlock Text="{Binding [gateHelp], Source={x:Static svc:Loc.I}}" FontSize="13"
+                                   Foreground="{DynamicResource MutedBrush}" Margin="0,0,6,0" />
+                        <Button Style="{StaticResource LinkBtn}" Command="{Binding OpenSupportCommand}">
+                            <TextBlock Text="{Binding [gateContact], Source={x:Static svc:Loc.I}}" FontSize="13" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource InkBrush}" />
+                        </Button>
                     </StackPanel>
-                </Border>
+                </StackPanel>
             </Grid>
 
-            <!-- =========================================================== DASHBOARD -->
-            <Grid Grid.Row="1" Margin="0,8,0,0"
+            <!-- ============================================================ HOME -->
+            <Grid Grid.Row="1" Margin="24,0,20,0"
                   Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="0.82*" MinWidth="360" />
-                    <ColumnDefinition Width="10" />
-                    <ColumnDefinition Width="1.18*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="430" />
                 </Grid.ColumnDefinitions>
 
-                <!-- ======================================== LEFT: dial + details -->
-                <Grid Grid.Column="0">
+                <!-- ======================================== hero -->
+                <Grid Margin="16,0,36,8" MaxWidth="620" HorizontalAlignment="Stretch">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="10" />
-                        <RowDefinition Height="*" MinHeight="160" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
-                    <Border Style="{StaticResource Card}">
-                        <StackPanel>
-                            <StackPanel Margin="16,14,16,14">
-                                <Grid Width="250" Height="178" HorizontalAlignment="Center">
-                                    <ctl:TickGauge Ratio="{Binding GaugeRatio}" Unlimited="{Binding IsUnlimited}"
-                                                   Live="{Binding IsLive}" Idle="{DynamicResource MutedBrush}"
-                                                   Width="250" Height="190" VerticalAlignment="Top">
-                                        <ctl:TickGauge.Style>
-                                            <Style TargetType="ctl:TickGauge">
-                                                <Setter Property="Tone" Value="{DynamicResource AccentBrush}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding GaugeTone}" Value="Warn">
-                                                        <Setter Property="Tone" Value="{DynamicResource WarnBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding GaugeTone}" Value="Alert">
-                                                        <Setter Property="Tone" Value="{DynamicResource AlertBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </ctl:TickGauge.Style>
-                                    </ctl:TickGauge>
-                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,92,0,0">
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                            <TextBlock Text="{Binding GaugeValue}" FontFamily="{StaticResource MonoFont}"
-                                                       FontSize="32" FontWeight="SemiBold" />
-                                            <TextBlock Text="{Binding GaugeUnit}" FontFamily="{StaticResource MonoFont}"
-                                                       FontSize="16" Foreground="{DynamicResource MutedBrush}"
-                                                       VerticalAlignment="Bottom" Margin="5,0,0,5" />
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding GaugeCaption, Converter={StaticResource Upper}}"
-                                                   FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Center"
-                                                   Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0" />
-                                    </StackPanel>
-                                </Grid>
+                    <Viewbox MaxWidth="600" MaxHeight="600" Margin="0,-40,0,-10">
+                        <ContentControl Template="{StaticResource OrbTemplate}" Tag="{Binding State}" Focusable="False" Margin="120" />
+                    </Viewbox>
 
-                                <Border HorizontalAlignment="Center" Padding="9,5,12,5" Margin="0,0,0,12"
-                                        Background="{DynamicResource FieldBrush}" BorderBrush="{DynamicResource LineBrush}"
-                                        BorderThickness="1">
-                                    <StackPanel Orientation="Horizontal">
-                                        <StackPanel.Style>
-                                            <Style TargetType="StackPanel">
-                                                <Setter Property="TextElement.Foreground" Value="{DynamicResource AccentBrush}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding StatusTone}" Value="Warn">
-                                                        <Setter Property="TextElement.Foreground" Value="{DynamicResource WarnBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding StatusTone}" Value="Alert">
-                                                        <Setter Property="TextElement.Foreground" Value="{DynamicResource AlertBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </StackPanel.Style>
-                                        <Ellipse x:Name="StatusDot" Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,7,0"
-                                                 Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
-                                        <TextBlock Text="{Binding StatusLabel}" FontSize="11.5" FontWeight="SemiBold" />
-                                    </StackPanel>
+                    <!-- server chip → servers tab -->
+                    <Button Grid.Row="1" HorizontalAlignment="Left" Command="{Binding SetTabCommand}" CommandParameter="servers"
+                            Cursor="Hand" FocusVisualStyle="{x:Null}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" CornerRadius="16" BorderThickness="1.5" BorderBrush="{DynamicResource InkBrush}"
+                                        Background="Transparent" Padding="10,9,16,9">
+                                    <ContentPresenter />
                                 </Border>
-
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="8" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Border Style="{StaticResource Flow}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ctl:Icon Data="{StaticResource IcoUp}" Size="14" StrokeThickness="2.2"
-                                                      Foreground="{DynamicResource Accent2Brush}" VerticalAlignment="Center" />
-                                            <StackPanel Margin="9,0,0,0">
-                                                <TextBlock Text="{Binding [upload], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}"
-                                                           Style="{StaticResource FlowLabel}" />
-                                                <TextBlock Text="{Binding UploadText}" Style="{StaticResource FlowValue}" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                    <Border Grid.Column="2" Style="{StaticResource Flow}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <ctl:Icon Data="{StaticResource IcoDown}" Size="14" StrokeThickness="2.2"
-                                                      Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" />
-                                            <StackPanel Margin="9,0,0,0">
-                                                <TextBlock Text="{Binding [download], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}"
-                                                           Style="{StaticResource FlowLabel}" />
-                                                <TextBlock Text="{Binding DownloadText}" Style="{StaticResource FlowValue}" />
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-                            </StackPanel>
-
-                            <!-- daily usage -->
-                            <Border BorderBrush="{DynamicResource Line2Brush}" BorderThickness="0,1,0,0" Padding="16,11,16,13">
-                                <StackPanel>
-                                    <DockPanel Margin="0,0,0,7">
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding HistoryAverage}"
-                                                   FontFamily="{StaticResource MonoFont}" FontSize="11"
-                                                   Foreground="{DynamicResource Ink2Brush}" />
-                                        <TextBlock Text="{Binding [history], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}"
-                                                   FontSize="9.5" FontWeight="SemiBold" Foreground="{DynamicResource MutedBrush}" />
-                                    </DockPanel>
-                                    <ctl:UsageBars Height="46" Values="{Binding History}"
-                                                   Bar="{DynamicResource BarBrush}" Void="{DynamicResource LineBrush}"
-                                                   Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}}" />
-                                    <TextBlock Text="{Binding [histWait], Source={x:Static svc:Loc.I}}" FontSize="11"
-                                               Foreground="{DynamicResource MutedBrush}" HorizontalAlignment="Center"
-                                               Margin="0,4,0,2"
-                                               Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
-                                </StackPanel>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="36" Height="28" CornerRadius="8" Background="{DynamicResource SolidBrush}">
+                                <ctl:Icon Data="{StaticResource IcoGlobe}" Size="17" Foreground="{DynamicResource OnSolidBrush}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
+                            <TextBlock Text="{Binding SelectedServerName}" FontSize="15" FontWeight="Medium" Margin="12,0,0,0"
+                                       VerticalAlignment="Center" MaxWidth="320" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding SelectedServer.PingText}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                       Foreground="{DynamicResource MutedBrush}" Margin="10,0,0,0" VerticalAlignment="Center" />
                         </StackPanel>
-                    </Border>
+                    </Button>
 
-                    <!-- details -->
-                    <Border Grid.Row="2" Style="{StaticResource Card}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <ContentControl Style="{StaticResource SectionHead}" Margin="16,14,16,6"
-                                            Content="{Binding [details], Source={x:Static svc:Loc.I}}" />
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding DetailRows}" AlternationCount="1000">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type vm:DetailRow}">
-                                            <Border x:Name="RowBd" BorderBrush="{DynamicResource Line2Brush}"
-                                                    BorderThickness="0,1,0,0" Padding="16,9">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="Auto" MinWidth="130" />
-                                                        <ColumnDefinition Width="*" />
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Key}" FontSize="12"
-                                                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" />
-                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right"
-                                                                VerticalAlignment="Center">
-                                                        <TextBlock x:Name="Val" Text="{Binding Value}" FontSize="13"
-                                                                   FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
-                                                                   Style="{StaticResource ToneText}" ToolTip="{Binding Value}" />
-                                                        <TextBlock Text="{Binding Hint, StringFormat=' · {0}'}" FontSize="13"
-                                                                   Foreground="{DynamicResource MutedBrush}"
-                                                                   Visibility="{Binding HasHint, Converter={StaticResource BoolToVis}}" />
-                                                        <Border Style="{StaticResource Chip}"
-                                                                Visibility="{Binding IsChip, Converter={StaticResource BoolToVis}}">
-                                                            <TextBlock Text="{Binding Value}" />
-                                                        </Border>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}" Value="0">
-                                                    <Setter TargetName="RowBd" Property="BorderThickness" Value="0" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Mono}" Value="True">
-                                                    <Setter TargetName="Val" Property="FontFamily" Value="{StaticResource MonoFont}" />
-                                                    <Setter TargetName="Val" Property="FontSize" Value="12" />
-                                                    <Setter TargetName="Val" Property="FontWeight" Value="Normal" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding IsChip}" Value="True">
-                                                    <Setter TargetName="Val" Property="Visibility" Value="Collapsed" />
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                            <Button Grid.Row="2" Style="{StaticResource Btn}" Margin="16,10,16,14"
-                                    Command="{Binding CopyIdCommand}">
-                                <StackPanel Orientation="Horizontal">
-                                    <ctl:Icon Data="{StaticResource IcoCopy}" Size="14" Margin="0,0,7,0" />
-                                    <TextBlock Text="{Binding [copyId], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center" />
-                                </StackPanel>
-                            </Button>
-                        </Grid>
-                    </Border>
+                    <TextBlock Grid.Row="2" Text="{Binding HeroTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="58"
+                               FontWeight="SemiLight" Margin="0,20,0,0" TextTrimming="CharacterEllipsis" />
+
+                    <!-- live line -->
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="2,8,0,0" Height="22">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,9,0">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="{DynamicResource MutedBrush}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                            <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding StateText}" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock FontFamily="{StaticResource MonoFont}" FontSize="13" Foreground="{DynamicResource MutedBrush}"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Visibility="{Binding IsConnected, Converter={StaticResource BoolToVis}}">
+                            <Run Text="{Binding Elapsed, Mode=OneWay}" />
+                            <Run Text="  ·  " />
+                            <Run Text="{Binding PublicIp, Mode=OneWay}" />
+                            <Run Text="  ·  " />
+                            <Run Text="{Binding ExitCountry, Mode=OneWay}" />
+                        </TextBlock>
+                        <TextBlock Text="{Binding ModeHint}" FontSize="13" Foreground="{DynamicResource MutedBrush}"
+                                   VerticalAlignment="Center" Margin="12,0,0,0"
+                                   Visibility="{Binding IsConnected, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="4" Margin="0,28,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ctl:SlideToConnect Label="{Binding SlideLabel}" IsOn="{Binding IsOnSide, Mode=OneWay}"
+                                            IsBusy="{Binding IsBusy, Mode=OneWay}" Command="{Binding ToggleConnectionCommand}" />
+                        <Button Grid.Column="1" Style="{StaticResource RoundSolid}" Margin="16,0,0,0"
+                                Command="{Binding ToggleSettingsCommand}" ToolTip="{Binding [settings], Source={x:Static svc:Loc.I}}">
+                            <ctl:Icon Data="{StaticResource IcoGear}" Size="24" />
+                        </Button>
+                    </Grid>
                 </Grid>
 
-                <!-- ======================================== RIGHT: connection + link + configs -->
-                <Grid Grid.Column="2">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="10" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="10" />
-                        <RowDefinition Height="*" MinHeight="150" />
-                    </Grid.RowDefinitions>
+                <!-- ======================================== inspector -->
+                <Border Grid.Column="1" Style="{StaticResource Glass}" Margin="0,4,0,8" Padding="20,18,20,20">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="60" ShadowDepth="18" Direction="270" Opacity="0.22" />
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-                    <!-- connection -->
-                    <Border Style="{StaticResource Card}" Padding="16,14,16,15">
-                        <StackPanel>
-                            <ContentControl Style="{StaticResource SectionHead}"
-                                            Content="{Binding [connection], Source={x:Static svc:Loc.I}}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <!-- power button -->
-                                <Button Command="{Binding ToggleConnectionCommand}" Cursor="Hand"
-                                        FocusVisualStyle="{x:Null}" Margin="4,0,22,0">
-                                    <Button.Template>
-                                        <ControlTemplate TargetType="Button">
-                                            <ContentPresenter />
-                                        </ControlTemplate>
-                                    </Button.Template>
-                                    <Grid Width="138" Height="138" Background="Transparent">
-                                        <!-- pulse -->
-                                        <Ellipse Width="118" Height="118" Stroke="{DynamicResource AccentBrush}"
-                                                 StrokeThickness="2" Opacity="0" RenderTransformOrigin="0.5,0.5">
-                                            <Ellipse.RenderTransform>
-                                                <ScaleTransform />
-                                            </Ellipse.RenderTransform>
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                            <DataTrigger.EnterActions>
-                                                                <BeginStoryboard x:Name="Pulse">
-                                                                    <Storyboard RepeatBehavior="Forever">
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                                                         From="1" To="1.17" Duration="0:0:2.2" />
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                                                         From="1" To="1.17" Duration="0:0:2.2" />
-                                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                                         From="0.7" To="0" Duration="0:0:2.2" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.EnterActions>
-                                                            <DataTrigger.ExitActions>
-                                                                <StopStoryboard BeginStoryboardName="Pulse" />
-                                                            </DataTrigger.ExitActions>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-
-                                        <!-- ring -->
-                                        <Ellipse Width="118" Height="118">
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Setter Property="Stroke" Value="{DynamicResource LineBrush}" />
-                                                    <Setter Property="StrokeThickness" Value="2" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                            <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                                                            <Setter Property="StrokeThickness" Value="2.5" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-
-                                        <!-- spinner -->
-                                        <Path Width="118" Height="118" Stretch="None" RenderTransformOrigin="0.5,0.5"
-                                              StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                              Stroke="{DynamicResource AccentBrush}" Data="M 59,1 A 58,58 0 0 1 117,59">
-                                            <Path.RenderTransform>
-                                                <RotateTransform />
-                                            </Path.RenderTransform>
-                                            <Path.Style>
-                                                <Style TargetType="Path">
-                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding State}" Value="Connecting">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                            <DataTrigger.EnterActions>
-                                                                <BeginStoryboard x:Name="Spin">
-                                                                    <Storyboard RepeatBehavior="Forever">
-                                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
-                                                                                         From="0" To="360" Duration="0:0:1" />
-                                                                    </Storyboard>
-                                                                </BeginStoryboard>
-                                                            </DataTrigger.EnterActions>
-                                                            <DataTrigger.ExitActions>
-                                                                <StopStoryboard BeginStoryboardName="Spin" />
-                                                            </DataTrigger.ExitActions>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding State}" Value="Disconnecting">
-                                                            <Setter Property="Visibility" Value="Visible" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Path.Style>
-                                        </Path>
-
-                                        <!-- core -->
-                                        <Ellipse Width="98" Height="98">
-                                            <Ellipse.Style>
-                                                <Style TargetType="Ellipse">
-                                                    <Setter Property="Fill" Value="{DynamicResource FieldBrush}" />
-                                                    <Setter Property="Stroke" Value="{DynamicResource Line2Brush}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                            <Setter Property="Fill" Value="{DynamicResource AccentSoftBrush}" />
-                                                            <Setter Property="Stroke" Value="{DynamicResource AccentLineBrush}" />
-                                                        </DataTrigger>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Stroke" Value="{DynamicResource HiBrush}" />
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Ellipse.Style>
-                                        </Ellipse>
-
-                                        <ctl:Icon Data="{StaticResource IcoPower}" Size="40" StrokeThickness="2"
-                                                  HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
-                                            <ctl:Icon.Style>
-                                                <Style TargetType="ctl:Icon">
-                                                    <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ctl:Icon.Style>
-                                        </ctl:Icon>
-                                    </Grid>
+                        <!-- tabs -->
+                        <Border Style="{StaticResource SegTrack}" Margin="0,0,0,18">
+                            <UniformGrid Rows="1">
+                                <Button Style="{StaticResource SegBtn}" Command="{Binding SetTabCommand}" CommandParameter="overview"
+                                        Tag="{Binding Tab, Converter={StaticResource Eq}, ConverterParameter=overview}">
+                                    <TextBlock Text="{Binding [tabOverview], Source={x:Static svc:Loc.I}}" />
                                 </Button>
+                                <Button Style="{StaticResource SegBtn}" Command="{Binding SetTabCommand}" CommandParameter="servers"
+                                        Tag="{Binding Tab, Converter={StaticResource Eq}, ConverterParameter=servers}">
+                                    <TextBlock Text="{Binding [tabServers], Source={x:Static svc:Loc.I}}" />
+                                </Button>
+                                <Button Style="{StaticResource SegBtn}" Command="{Binding SetTabCommand}" CommandParameter="plan"
+                                        Tag="{Binding Tab, Converter={StaticResource Eq}, ConverterParameter=plan}">
+                                    <TextBlock Text="{Binding [tabPlan], Source={x:Static svc:Loc.I}}" />
+                                </Button>
+                            </UniformGrid>
+                        </Border>
 
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding StateText}" FontSize="25" FontWeight="SemiBold">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding ActionHint}" FontSize="12.5" Margin="0,2,0,12"
-                                               Foreground="{DynamicResource MutedBrush}" />
-                                    <Border HorizontalAlignment="Left" Padding="11,7" Background="{DynamicResource FieldBrush}"
-                                            BorderBrush="{DynamicResource Line2Brush}" BorderThickness="1">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,9,0">
-                                                <Ellipse.Style>
-                                                    <Style TargetType="Ellipse">
-                                                        <Setter Property="Fill" Value="{DynamicResource MutedBrush}" />
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding State}" Value="Connected">
-                                                                <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Ellipse.Style>
-                                            </Ellipse>
-                                            <TextBlock Text="{Binding SelectedServerName}" FontSize="12.5" FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                        <!-- overview -->
+                        <ScrollViewer Grid.Row="1" Tag="overview" Style="{StaticResource TabPage}" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{Binding [connection], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" />
+                                <UniformGrid Columns="2">
+                                    <Border Style="{StaticResource Tile}" Margin="0,0,5,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding [duration], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                            <TextBlock Text="{Binding Elapsed}" Style="{StaticResource StatValue}" />
                                         </StackPanel>
                                     </Border>
-                                </StackPanel>
-                            </Grid>
+                                    <Border Style="{StaticResource Tile}" Margin="5,0,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding [realDelay], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                            <TextBlock Text="{Binding RealDelay}" Style="{StaticResource StatValue}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Tile}" Margin="0,0,5,0">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding [publicIp], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                            <TextBlock Text="{Binding PublicIp}" Style="{StaticResource StatValue}" FontSize="15" ToolTip="{Binding PublicIp}" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource Tile}" Margin="5,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding [location], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                            <TextBlock Text="{Binding ExitCountry}" Style="{StaticResource StatValue}" FontSize="15" ToolTip="{Binding ExitCountry}" />
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
 
-                            <!-- connection mode -->
-                            <Grid Margin="0,14,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="6" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <Button Command="{Binding SetModeCommand}" CommandParameter="tun" MinHeight="34">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource Btn}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsTunMode}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <TextBlock Text="{Binding [modeTun], Source={x:Static svc:Loc.I}}" />
-                                </Button>
-                                <Button Grid.Column="2" Command="{Binding SetModeCommand}" CommandParameter="proxy" MinHeight="34">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource Btn}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsProxyMode}" Value="True">
-                                                    <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
-                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <TextBlock Text="{Binding [modeProxy], Source={x:Static svc:Loc.I}}" />
-                                </Button>
-                            </Grid>
-                            <TextBlock Text="{Binding ModeHint}" FontSize="11.5" Margin="0,6,0,0"
-                                       Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding [mode], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                                <Border Style="{StaticResource SegTrack}">
+                                    <UniformGrid Rows="1">
+                                        <Button Style="{StaticResource SegBtn}" Command="{Binding SetModeCommand}" CommandParameter="tun"
+                                                Tag="{Binding IsTunMode}">
+                                            <TextBlock Text="{Binding [modeTun], Source={x:Static svc:Loc.I}}" />
+                                        </Button>
+                                        <Button Style="{StaticResource SegBtn}" Command="{Binding SetModeCommand}" CommandParameter="proxy"
+                                                Tag="{Binding IsProxyMode}">
+                                            <TextBlock Text="{Binding [modeProxy], Source={x:Static svc:Loc.I}}" />
+                                        </Button>
+                                    </UniformGrid>
+                                </Border>
+                                <TextBlock Text="{Binding ModeHint}" FontSize="12.5" Foreground="{DynamicResource MutedBrush}"
+                                           TextWrapping="Wrap" Margin="6,8,0,0" />
 
-                            <UniformGrid Columns="4" Margin="0,14,0,0">
-                                <Border Style="{StaticResource Flow}" Margin="0,0,4,0">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding [duration], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}" Style="{StaticResource FlowLabel}" />
-                                        <TextBlock Text="{Binding Elapsed}" Style="{StaticResource FlowValue}" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource Flow}" Margin="4,0">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding [publicIp], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}" Style="{StaticResource FlowLabel}" />
-                                        <TextBlock Text="{Binding PublicIp}" Style="{StaticResource FlowValue}" ToolTip="{Binding PublicIp}" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource Flow}" Margin="4,0">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding [location], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}" Style="{StaticResource FlowLabel}" />
-                                        <TextBlock Text="{Binding ExitCountry}" Style="{StaticResource FlowValue}" ToolTip="{Binding ExitCountry}" />
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource Flow}" Margin="4,0,0,0">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding [realDelay], Source={x:Static svc:Loc.I}, Converter={StaticResource Upper}}" Style="{StaticResource FlowLabel}" />
-                                        <TextBlock Text="{Binding RealDelay}" Style="{StaticResource FlowValue}" />
-                                    </StackPanel>
-                                </Border>
-                            </UniformGrid>
-                        </StackPanel>
-                    </Border>
+                                <TextBlock Text="{Binding [tabPlan], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                                <Button Style="{StaticResource Bare}" Background="Transparent" Command="{Binding SetTabCommand}" CommandParameter="plan">
+                                    <Border Style="{StaticResource Tile}" Padding="18,16">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding GaugeValue}" FontFamily="{StaticResource MonoFont}" FontSize="30"
+                                                               FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding GaugeUnit}" FontFamily="{StaticResource MonoFont}" FontSize="15"
+                                                               Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Bottom" Margin="6,0,0,5" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding GaugeCaption}" FontSize="12" Foreground="{DynamicResource MutedBrush}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Style="{StaticResource StatusTint}">
+                                                <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,7,0"
+                                                         Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
+                                                <TextBlock Text="{Binding StatusLabel}" FontSize="12.5" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </Button>
+                                <ctl:UsageBars Height="54" Margin="4,14,4,0" Values="{Binding History}"
+                                               Bar="{DynamicResource BarBrush}" Void="{DynamicResource LineBrush}"
+                                               Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}}" />
+                            </StackPanel>
+                        </ScrollViewer>
 
-                    <!-- subscription link -->
-                    <Border Grid.Row="2" Style="{StaticResource Card}" Padding="16,14,16,15">
-                        <StackPanel>
-                            <ContentControl Style="{StaticResource SectionHead}"
-                                            Content="{Binding [link], Source={x:Static svc:Loc.I}}" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <Border MinHeight="40" Padding="12,0" Background="{DynamicResource FieldBrush}"
-                                        BorderBrush="{DynamicResource Line2Brush}" BorderThickness="1">
-                                    <TextBlock Text="{Binding SubscriptionUrl}" FontFamily="{StaticResource MonoFont}"
-                                               FontSize="11.5" Foreground="{DynamicResource Ink2Brush}"
-                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                                </Border>
-                                <Button Grid.Column="1" Style="{StaticResource BtnSquare}" Margin="6,0,0,0"
-                                        Command="{Binding RefreshCommand}"
-                                        ToolTip="{Binding [refresh], Source={x:Static svc:Loc.I}}">
-                                    <ctl:Icon Data="{StaticResource IcoRefresh}" Size="14" />
-                                </Button>
-                                <Button Grid.Column="2" Style="{StaticResource BtnSquare}" Margin="6,0,0,0"
-                                        Command="{Binding ChangeLinkCommand}"
-                                        ToolTip="{Binding [changeLink], Source={x:Static svc:Loc.I}}">
-                                    <ctl:Icon Data="{StaticResource IcoExit}" Size="14" />
-                                </Button>
-                                <Button Grid.Column="3" Style="{StaticResource BtnAccent}" Margin="6,0,0,0"
-                                        Command="{Binding CopyLinkCommand}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <ctl:Icon Data="{StaticResource IcoCopy}" Size="14" Margin="0,0,7,0" />
-                                        <TextBlock Text="{Binding [copy], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center" />
-                                    </StackPanel>
-                                </Button>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- configurations -->
-                    <Border Grid.Row="4" Style="{StaticResource Card}" Padding="16,14,14,12">
-                        <Grid>
+                        <!-- servers -->
+                        <Grid Grid.Row="1" Tag="servers" Style="{StaticResource TabPage}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
-                            <ContentControl Style="{StaticResource SectionHead}"
-                                            Content="{Binding [configs], Source={x:Static svc:Loc.I}}">
-                                <ContentControl.Tag>
+                            <DockPanel Margin="4,0,0,12">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Btn}" MinHeight="34" Padding="14,0"
+                                        Command="{Binding PingAllCommand}">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="{Binding ServerCount}" FontFamily="{StaticResource MonoFont}" FontSize="11"
-                                                   Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <Button Style="{StaticResource Btn}" MinHeight="28" Padding="10,0"
-                                                Command="{Binding PingAllCommand}">
-                                            <StackPanel Orientation="Horizontal">
-                                                <ctl:Icon Data="{StaticResource IcoBolt}" Size="12" Margin="0,0,6,0"
-                                                          Foreground="{DynamicResource AccentBrush}" />
-                                                <TextBlock Text="{Binding [testPing], Source={x:Static svc:Loc.I}}" FontSize="11.5"
-                                                           VerticalAlignment="Center" />
-                                            </StackPanel>
-                                        </Button>
+                                        <ctl:Icon Data="{StaticResource IcoBolt}" Size="13" Margin="0,0,7,0" />
+                                        <TextBlock Text="{Binding [testPing], Source={x:Static svc:Loc.I}}" FontSize="12.5" VerticalAlignment="Center" />
                                     </StackPanel>
-                                </ContentControl.Tag>
-                            </ContentControl>
-
-                            <TextBlock Grid.Row="1" Text="{Binding [noConfigs], Source={x:Static svc:Loc.I}}"
-                                       Foreground="{DynamicResource MutedBrush}" FontSize="12.5" HorizontalAlignment="Center"
-                                       Margin="0,16">
+                                </Button>
+                                <TextBlock VerticalAlignment="Center" Style="{StaticResource SectionLabel}">
+                                    <Run Text="{Binding ServerCount, Mode=OneWay}" />
+                                    <Run Text="{Binding [configs], Source={x:Static svc:Loc.I}, Mode=OneWay}" />
+                                </TextBlock>
+                            </DockPanel>
+                            <TextBlock Grid.Row="1" Text="{Binding [noConfigs], Source={x:Static svc:Loc.I}}" Foreground="{DynamicResource MutedBrush}"
+                                       HorizontalAlignment="Center" Margin="0,30,0,0">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Setter Property="Visibility" Value="Collapsed" />
@@ -830,40 +520,39 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-
                             <ListBox Grid.Row="1" Style="{StaticResource CfgList}" ItemContainerStyle="{StaticResource CfgItem}"
                                      ItemsSource="{Binding Servers}" SelectedItem="{Binding SelectedServer}">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate DataType="{x:Type vm:ServerItemViewModel}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border Style="{StaticResource TagProto}">
-                                                    <TextBlock Text="{Binding ProtocolTag}" />
-                                                </Border>
-                                                <Border Style="{StaticResource Tag}">
-                                                    <TextBlock Text="{Binding NetworkTag}" />
-                                                </Border>
-                                                <Border Style="{StaticResource TagSec}"
-                                                        Visibility="{Binding HasSecurityTag, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="{Binding SecurityTag}" />
-                                                </Border>
-                                                <Border Style="{StaticResource TagWarn}"
-                                                        ToolTip="{Binding [bypassTip], Source={x:Static svc:Loc.I}}"
-                                                        Visibility="{Binding IsBypass, Converter={StaticResource BoolToVis}}">
-                                                    <TextBlock Text="BYPASS" />
-                                                </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                                           TextTrimming="CharacterEllipsis" ToolTip="{Binding FullName}" />
+                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                    <Border Style="{StaticResource TagProto}">
+                                                        <TextBlock Text="{Binding ProtocolTag}" />
+                                                    </Border>
+                                                    <Border Style="{StaticResource Tag}">
+                                                        <TextBlock Text="{Binding NetworkTag}" />
+                                                    </Border>
+                                                    <Border Style="{StaticResource TagSec}"
+                                                            Visibility="{Binding HasSecurityTag, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="{Binding SecurityTag}" />
+                                                    </Border>
+                                                    <Border Style="{StaticResource TagWarn}"
+                                                            ToolTip="{Binding [bypassTip], Source={x:Static svc:Loc.I}}"
+                                                            Visibility="{Binding IsBypass, Converter={StaticResource BoolToVis}}">
+                                                        <TextBlock Text="BYPASS" />
+                                                    </Border>
+                                                </StackPanel>
                                             </StackPanel>
-                                            <TextBlock Grid.Column="1" Text="{Binding Name}" Margin="6,0,8,0" FontSize="12.5"
-                                                       FontWeight="SemiBold" VerticalAlignment="Center"
-                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding FullName}" />
-                                            <TextBlock Grid.Column="2" Text="{Binding PingText}" FontFamily="{StaticResource MonoFont}"
-                                                       FontSize="11.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0">
+                                            <TextBlock Grid.Column="1" Text="{Binding PingText}" FontFamily="{StaticResource MonoFont}"
+                                                       FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
@@ -884,138 +573,467 @@
                                                     </Style>
                                                 </TextBlock.Style>
                                             </TextBlock>
-                                            <Button Grid.Column="3" Style="{StaticResource BtnSquare}" Width="32" MinHeight="32"
+                                            <Button Grid.Column="2" Style="{StaticResource IconBtn}" Width="34" Height="34" MinHeight="34"
+                                                    Background="Transparent"
                                                     Command="{Binding DataContext.CopyConfigCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                     CommandParameter="{Binding}"
                                                     ToolTip="{Binding [copy], Source={x:Static svc:Loc.I}}">
-                                                <ctl:Icon Data="{StaticResource IcoCopy}" Size="13" />
+                                                <ctl:Icon Data="{StaticResource IcoCopy}" Size="15" />
                                             </Button>
                                         </Grid>
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
                         </Grid>
-                    </Border>
-                </Grid>
 
-                <!-- log panel -->
-                <Border Grid.ColumnSpan="3" VerticalAlignment="Bottom" Height="220" Background="{DynamicResource BgBrush}"
-                        BorderBrush="{DynamicResource LineBrush}" BorderThickness="1" Padding="14,10"
-                        Visibility="{Binding IsLogOpen, Converter={StaticResource BoolToVis}}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <ContentControl Style="{StaticResource SectionHead}" Margin="0,0,0,6"
-                                        Content="{Binding [log], Source={x:Static svc:Loc.I}}">
-                            <ContentControl.Tag>
-                                <StackPanel Orientation="Horizontal">
-                                    <Button Style="{StaticResource Btn}" MinHeight="26" Padding="9,0" Margin="0,0,5,0"
-                                            Command="{Binding CopyLogsCommand}">
-                                        <TextBlock Text="{Binding [copy], Source={x:Static svc:Loc.I}}" FontSize="11" />
-                                    </Button>
-                                    <Button Style="{StaticResource Btn}" MinHeight="26" Padding="9,0" Margin="0,0,5,0"
-                                            Command="{Binding ClearLogsCommand}">
-                                        <TextBlock Text="{Binding [clear], Source={x:Static svc:Loc.I}}" FontSize="11" />
-                                    </Button>
-                                    <Button Style="{StaticResource BtnSquare}" Width="26" MinHeight="26"
-                                            Command="{Binding ToggleLogCommand}">
-                                        <ctl:Icon Data="{StaticResource IcoClose}" Size="11" />
-                                    </Button>
-                                </StackPanel>
-                            </ContentControl.Tag>
-                        </ContentControl>
-                        <ListBox x:Name="LogList" Grid.Row="1" ItemsSource="{Binding Logs}" Background="Transparent"
-                                 BorderThickness="0" Foreground="{DynamicResource Ink2Brush}"
-                                 FontFamily="{StaticResource MonoFont}" FontSize="11"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <ContentPresenter Margin="0,1" />
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" />
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                        <!-- subscription -->
+                        <ScrollViewer Grid.Row="1" Tag="plan" Style="{StaticResource TabPage}" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Border Style="{StaticResource Tile}" Padding="16,16,16,18">
+                                    <StackPanel>
+                                        <Grid Width="250" Height="178" HorizontalAlignment="Center">
+                                            <ctl:TickGauge Ratio="{Binding GaugeRatio}" Unlimited="{Binding IsUnlimited}"
+                                                           Live="{Binding IsLive}" Idle="{DynamicResource MutedBrush}"
+                                                           Width="250" Height="190" VerticalAlignment="Top">
+                                                <ctl:TickGauge.Style>
+                                                    <Style TargetType="ctl:TickGauge">
+                                                        <Setter Property="Tone" Value="{DynamicResource AccentBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding GaugeTone}" Value="Warn">
+                                                                <Setter Property="Tone" Value="{DynamicResource WarnBrush}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding GaugeTone}" Value="Alert">
+                                                                <Setter Property="Tone" Value="{DynamicResource AlertBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ctl:TickGauge.Style>
+                                            </ctl:TickGauge>
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,90,0,0">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="{Binding GaugeValue}" FontFamily="{StaticResource MonoFont}"
+                                                               FontSize="32" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding GaugeUnit}" FontFamily="{StaticResource MonoFont}"
+                                                               FontSize="16" Foreground="{DynamicResource MutedBrush}"
+                                                               VerticalAlignment="Bottom" Margin="5,0,0,5" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding GaugeCaption}" FontSize="11.5" HorizontalAlignment="Center"
+                                                           Foreground="{DynamicResource MutedBrush}" Margin="0,2,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+                                        <Border HorizontalAlignment="Center" CornerRadius="12" Padding="11,5,14,5"
+                                                Background="{DynamicResource SurfaceBrush}">
+                                            <StackPanel Orientation="Horizontal" Style="{StaticResource StatusTint}">
+                                                <Ellipse Width="7" Height="7" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                         Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource Self}}" />
+                                                <TextBlock Text="{Binding StatusLabel}" FontSize="12.5" FontWeight="SemiBold" />
+                                            </StackPanel>
+                                        </Border>
+                                        <UniformGrid Columns="2" Margin="0,16,0,0">
+                                            <StackPanel Margin="6,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:Icon Data="{StaticResource IcoUp}" Size="13" StrokeThickness="2.2"
+                                                              Foreground="{DynamicResource Accent2Brush}" Margin="0,0,6,0" />
+                                                    <TextBlock Text="{Binding [upload], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding UploadText}" Style="{StaticResource StatValue}" />
+                                            </StackPanel>
+                                            <StackPanel Margin="6,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:Icon Data="{StaticResource IcoDown}" Size="13" StrokeThickness="2.2"
+                                                              Foreground="{DynamicResource AccentBrush}" Margin="0,0,6,0" />
+                                                    <TextBlock Text="{Binding [download], Source={x:Static svc:Loc.I}}" Style="{StaticResource StatLabel}" />
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding DownloadText}" Style="{StaticResource StatValue}" />
+                                            </StackPanel>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <DockPanel Margin="4,20,4,8">
+                                    <TextBlock DockPanel.Dock="Right" Text="{Binding HistoryAverage}" FontFamily="{StaticResource MonoFont}"
+                                               FontSize="11.5" Foreground="{DynamicResource Ink2Brush}" />
+                                    <TextBlock Text="{Binding [history], Source={x:Static svc:Loc.I}}" Style="{StaticResource SectionLabel}" />
+                                </DockPanel>
+                                <ctl:UsageBars Height="56" Margin="4,0" Values="{Binding History}"
+                                               Bar="{DynamicResource BarBrush}" Void="{DynamicResource LineBrush}"
+                                               Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}}" />
+                                <TextBlock Text="{Binding [histWait], Source={x:Static svc:Loc.I}}" FontSize="12" Margin="4,0"
+                                           Foreground="{DynamicResource MutedBrush}"
+                                           Visibility="{Binding HasHistory, Converter={StaticResource BoolToVis}, ConverterParameter=invert}" />
+
+                                <TextBlock Text="{Binding [details], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                                <Border Style="{StaticResource Tile}" Padding="0,4">
+                                    <ItemsControl ItemsSource="{Binding DetailRows}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="16,9">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Key}" FontSize="13" Foreground="{DynamicResource MutedBrush}"
+                                                               VerticalAlignment="Center" Margin="0,0,14,0" />
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                                        <TextBlock x:Name="Val" Text="{Binding Value}" FontSize="13" FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" Style="{StaticResource ToneText}"
+                                                                   ToolTip="{Binding Value}" />
+                                                        <TextBlock Text="{Binding Hint, StringFormat=' · {0}'}" FontSize="13"
+                                                                   Foreground="{DynamicResource MutedBrush}"
+                                                                   Visibility="{Binding HasHint, Converter={StaticResource BoolToVis}}" />
+                                                        <Border Style="{StaticResource Chip}"
+                                                                Visibility="{Binding IsChip, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="{Binding Value}" />
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding Mono}" Value="True">
+                                                        <Setter TargetName="Val" Property="FontFamily" Value="{StaticResource MonoFont}" />
+                                                        <Setter TargetName="Val" Property="FontWeight" Value="Normal" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsChip}" Value="True">
+                                                        <Setter TargetName="Val" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                                <Button Style="{StaticResource Btn}" Margin="0,12,0,4" HorizontalAlignment="Stretch" Command="{Binding CopyIdCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ctl:Icon Data="{StaticResource IcoCopy}" Size="14" Margin="0,0,8,0" />
+                                        <TextBlock Text="{Binding [copyId], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
                 </Border>
             </Grid>
 
-            <!-- =========================================================== footer -->
-            <DockPanel Grid.Row="2" Margin="4,10,4,0" TextElement.FontSize="11"
-                       TextElement.Foreground="{DynamicResource MutedBrush}"
-                       Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}">
-                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse Width="5" Height="5" Fill="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,6,0">
+            <!-- ============================================================ footer -->
+            <DockPanel Grid.Row="2" Margin="30,0,30,0" VerticalAlignment="Center"
+                       TextElement.FontSize="11.5" TextElement.Foreground="{DynamicResource MutedBrush}">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <TextBlock Text="{Binding CurrentVersion}" FontFamily="{StaticResource MonoFont}" Margin="0,0,10,0" />
+                    <Button Style="{StaticResource LinkBtn}" Command="{Binding CheckUpdatesCommand}" Margin="0,0,16,0">
+                        <TextBlock Text="{Binding UpdateLabel}" />
+                    </Button>
+                    <Button Style="{StaticResource LinkBtn}" Command="{Binding OpenSupportCommand}">
+                        <TextBlock Text="{Binding [support], Source={x:Static svc:Loc.I}}" />
+                    </Button>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}">
+                    <Ellipse Width="6" Height="6" VerticalAlignment="Center" Margin="0,0,8,0">
                         <Ellipse.Style>
                             <Style TargetType="Ellipse">
-                                <Setter Property="Opacity" Value="0.55" />
+                                <Setter Property="Fill" Value="{DynamicResource MutedBrush}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsRefreshing}" Value="True">
-                                        <Setter Property="Opacity" Value="1" />
+                                        <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
-                    <TextBlock Text="{Binding FreshText}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" />
-                    <TextBlock Text="·" Margin="8,0" Opacity="0.5" />
-                    <TextBlock Text="{Binding CurrentVersion}" FontFamily="{StaticResource MonoFont}" FontSize="10.5" Margin="0,0,8,0" />
-                    <Button Command="{Binding CheckUpdatesCommand}">
-                        <Button.Style>
-                            <Style TargetType="Button" BasedOn="{StaticResource LinkBtn}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasUpdate}" Value="True">
-                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                        <TextBlock Text="{Binding UpdateLabel}" />
-                    </Button>
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FreshText}" FontFamily="{StaticResource MonoFont}" />
+                    <TextBlock Text="  ·  " />
                     <TextBlock Text="{Binding AccountsText}" TextTrimming="CharacterEllipsis" MaxWidth="480" />
-                    <TextBlock Text="·" Margin="8,0" Opacity="0.5" />
-                    <Button Style="{StaticResource LinkBtn}" Command="{Binding OpenSupportCommand}">
-                        <TextBlock Text="{Binding [support], Source={x:Static svc:Loc.I}}" />
-                    </Button>
-                    <TextBlock Text="·" Margin="8,0" Opacity="0.5" />
-                    <Button Style="{StaticResource LinkBtn}" Command="{Binding ToggleLogCommand}">
-                        <TextBlock Text="{Binding [log], Source={x:Static svc:Loc.I}}" />
-                    </Button>
                 </StackPanel>
             </DockPanel>
+        </Grid>
 
-            <!-- =========================================================== toast -->
-            <Border Grid.Row="1" Grid.RowSpan="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                    Margin="0,0,0,30" Padding="16,9" MaxWidth="560" Background="{DynamicResource BgBrush}"
-                    BorderThickness="1" IsHitTestVisible="False"
-                    Visibility="{Binding Toast, Converter={StaticResource NotEmptyToVis}}">
+        <!-- ============================================================ toast -->
+        <Border VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,70,0,0" CornerRadius="22"
+                Background="{DynamicResource SolidBrush}" Padding="18,11" MaxWidth="560"
+                Visibility="{Binding Toast, Converter={StaticResource NotEmptyToVis}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" ShadowDepth="8" Direction="270" Opacity="0.3" />
+            </Border.Effect>
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <Ellipse.Style>
+                        <Style TargetType="Ellipse">
+                            <Setter Property="Fill" Value="{DynamicResource AccentBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ToastIsError}" Value="True">
+                                    <Setter Property="Fill" Value="{DynamicResource AlertBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Ellipse.Style>
+                </Ellipse>
+                <TextBlock Text="{Binding Toast}" FontSize="13" FontWeight="Medium" TextWrapping="Wrap"
+                           Foreground="{DynamicResource OnSolidBrush}" />
+            </StackPanel>
+        </Border>
+
+        <!-- ============================================================ settings drawer -->
+        <Grid>
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Setter Property="Opacity" Value="0" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSettingsOpen}" Value="True">
+                            <DataTrigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.2" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.EnterActions>
+                            <DataTrigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.22" />
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.24" Value="{x:Static Visibility.Collapsed}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </DataTrigger.ExitActions>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Button Style="{StaticResource Bare}" Background="{DynamicResource ScrimBrush}" Cursor="Arrow"
+                    Command="{Binding ToggleSettingsCommand}" />
+
+            <Border Width="420" HorizontalAlignment="Right" Margin="12" CornerRadius="28"
+                    Background="{DynamicResource DrawerBrush}" BorderBrush="{DynamicResource GlassLineBrush}" BorderThickness="1">
+                <Border.RenderTransform>
+                    <TranslateTransform X="460" />
+                </Border.RenderTransform>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="60" ShadowDepth="0" Opacity="0.35" />
+                </Border.Effect>
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="BorderBrush" Value="{DynamicResource AccentLineBrush}" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding ToastIsError}" Value="True">
-                                <Setter Property="BorderBrush" Value="{DynamicResource AlertLineBrush}" />
+                            <DataTrigger Binding="{Binding IsSettingsOpen}" Value="True">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                             To="0" Duration="0:0:0.38">
+                                                <DoubleAnimation.EasingFunction><QuinticEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                             To="460" Duration="0:0:0.24">
+                                                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn" /></DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="30" ShadowDepth="6" Opacity="0.35" Color="Black" />
-                </Border.Effect>
-                <TextBlock Text="{Binding Toast}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <DockPanel Margin="26,22,18,8">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource IconBtn}" Command="{Binding ToggleSettingsCommand}">
+                            <ctl:Icon Data="{StaticResource IcoClose}" Size="16" />
+                        </Button>
+                        <TextBlock Text="{Binding [settings], Source={x:Static svc:Loc.I}}" FontFamily="{StaticResource DisplayFont}"
+                                   FontSize="28" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="22,8,22,24">
+                            <TextBlock Text="{Binding [theme], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,12,0,8" />
+                            <Border Style="{StaticResource SegTrack}">
+                                <UniformGrid Rows="1">
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetThemeCommand}" CommandParameter="auto"
+                                            Tag="{Binding ThemeMode, Converter={StaticResource Eq}, ConverterParameter=auto}">
+                                        <TextBlock Text="{Binding [auto], Source={x:Static svc:Loc.I}}" />
+                                    </Button>
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetThemeCommand}" CommandParameter="dark"
+                                            Tag="{Binding ThemeMode, Converter={StaticResource Eq}, ConverterParameter=dark}">
+                                        <TextBlock Text="{Binding [dark], Source={x:Static svc:Loc.I}}" />
+                                    </Button>
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetThemeCommand}" CommandParameter="light"
+                                            Tag="{Binding ThemeMode, Converter={StaticResource Eq}, ConverterParameter=light}">
+                                        <TextBlock Text="{Binding [light], Source={x:Static svc:Loc.I}}" />
+                                    </Button>
+                                </UniformGrid>
+                            </Border>
+
+                            <TextBlock Text="{Binding [accentLabel], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,10" />
+                            <ItemsControl ItemsSource="{Binding Accents}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="1" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:AccentOption}">
+                                        <Button Command="{Binding DataContext.SetAccentCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}" ToolTip="{Binding Name}" Cursor="Hand" FocusVisualStyle="{x:Null}">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Grid Width="48" Height="48" Background="Transparent">
+                                                        <Ellipse x:Name="Ring" StrokeThickness="2" Stroke="Transparent" />
+                                                        <Ellipse Margin="6" Fill="{Binding Swatch}" />
+                                                        <ctl:Icon x:Name="Tick" Data="{StaticResource IcoCheck}" Size="18" StrokeThickness="2.4"
+                                                                  Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                  Visibility="Collapsed" />
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource MutedBrush}" />
+                                                        </Trigger>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource InkBrush}" />
+                                                            <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
+                                                        </DataTrigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Text="{Binding [langLabel], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                            <Border Style="{StaticResource SegTrack}">
+                                <UniformGrid Rows="1">
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetLangCommand}" CommandParameter="auto"
+                                            Tag="{Binding LangMode, Converter={StaticResource Eq}, ConverterParameter=auto}">
+                                        <TextBlock Text="{Binding [auto], Source={x:Static svc:Loc.I}}" />
+                                    </Button>
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetLangCommand}" CommandParameter="en"
+                                            Tag="{Binding LangMode, Converter={StaticResource Eq}, ConverterParameter=en}">
+                                        <TextBlock Text="English" />
+                                    </Button>
+                                    <Button Style="{StaticResource SegBtn}" Command="{Binding SetLangCommand}" CommandParameter="fr"
+                                            Tag="{Binding LangMode, Converter={StaticResource Eq}, ConverterParameter=fr}">
+                                        <TextBlock Text="Français" />
+                                    </Button>
+                                </UniformGrid>
+                            </Border>
+
+                            <StackPanel Visibility="{Binding IsAuthenticated, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding [link], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                                <Border Style="{StaticResource Tile}">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding SubscriptionUrl}" FontFamily="{StaticResource MonoFont}" FontSize="12.5"
+                                                   Foreground="{DynamicResource Ink2Brush}" TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding SubscriptionUrl}" />
+                                        <UniformGrid Columns="3" Margin="0,12,0,0">
+                                            <Button Style="{StaticResource Btn}" Background="{DynamicResource DrawerBrush}" Margin="0,0,4,0"
+                                                    Command="{Binding CopyLinkCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:Icon Data="{StaticResource IcoCopy}" Size="14" Margin="0,0,6,0" />
+                                                    <TextBlock Text="{Binding [copy], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Btn}" Background="{DynamicResource DrawerBrush}" Margin="4,0"
+                                                    Command="{Binding RefreshCommand}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:Icon Data="{StaticResource IcoRefresh}" Size="14" Margin="0,0,6,0" />
+                                                    <TextBlock Text="{Binding [refresh], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Btn}" Background="{DynamicResource DrawerBrush}" Margin="4,0,0,0"
+                                                    Command="{Binding ChangeLinkCommand}" ToolTip="{Binding [changeLink], Source={x:Static svc:Loc.I}}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <ctl:Icon Data="{StaticResource IcoExit}" Size="14" Margin="0,0,6,0" />
+                                                    <TextBlock Text="{Binding [changeLink], Source={x:Static svc:Loc.I}}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding [about], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="4,22,0,8" />
+                            <Border Style="{StaticResource Tile}" Padding="0">
+                                <StackPanel>
+                                    <Button Style="{StaticResource Bare}" Background="Transparent" Command="{Binding CheckUpdatesCommand}">
+                                        <DockPanel Margin="16,14">
+                                            <ctl:Icon DockPanel.Dock="Right" Data="{StaticResource IcoChevron}" Size="15"
+                                                      Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" />
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding UpdateLabel}" FontSize="12.5" VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasUpdate}" Value="True">
+                                                                <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding CurrentVersion}" FontSize="14" FontWeight="Medium" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Button>
+                                    <Rectangle Height="1" Fill="{DynamicResource LineBrush}" Margin="16,0" />
+                                    <Button Style="{StaticResource Bare}" Background="Transparent" Command="{Binding OpenSupportCommand}">
+                                        <DockPanel Margin="16,14">
+                                            <ctl:Icon DockPanel.Dock="Right" Data="{StaticResource IcoChevron}" Size="15"
+                                                      Foreground="{DynamicResource MutedBrush}" />
+                                            <TextBlock Text="{Binding [support], Source={x:Static svc:Loc.I}}" FontSize="14" FontWeight="Medium" />
+                                        </DockPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <DockPanel Margin="4,22,0,8">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button Style="{StaticResource Btn}" MinHeight="30" Padding="12,0" Margin="0,0,6,0" Command="{Binding CopyLogsCommand}">
+                                        <TextBlock Text="{Binding [copy], Source={x:Static svc:Loc.I}}" FontSize="11.5" />
+                                    </Button>
+                                    <Button Style="{StaticResource Btn}" MinHeight="30" Padding="12,0" Command="{Binding ClearLogsCommand}">
+                                        <TextBlock Text="{Binding [clear], Source={x:Static svc:Loc.I}}" FontSize="11.5" />
+                                    </Button>
+                                </StackPanel>
+                                <TextBlock Text="{Binding [log], Source={x:Static svc:Loc.I}}" Style="{StaticResource Caption}" Margin="0"
+                                           VerticalAlignment="Center" />
+                            </DockPanel>
+                            <Border Style="{StaticResource Tile}" Padding="12,10" Height="210">
+                                <ListBox x:Name="LogList" ItemsSource="{Binding Logs}" Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" FocusVisualStyle="{x:Null}">
+                                    <ListBox.ItemContainerStyle>
+                                        <Style TargetType="ListBoxItem">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ListBoxItem">
+                                                        <ContentPresenter Margin="0,1" />
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ListBox.ItemContainerStyle>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontFamily="{StaticResource MonoFont}" FontSize="11"
+                                                       Foreground="{DynamicResource Ink2Brush}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

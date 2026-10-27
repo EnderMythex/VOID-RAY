@@ -52,6 +52,23 @@ public partial class MainWindow : Window
         MaximizeIcon.Data = (Geometry)FindResource(maximized ? "IcoRestore" : "IcoMax");
     }
 
+    private void Paste_Click(object sender, RoutedEventArgs e)
+    {
+        if (Clipboard.ContainsText() && DataContext is MainViewModel vm)
+            vm.GateUrl = Clipboard.GetText().Trim();
+    }
+
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Escape && DataContext is MainViewModel { IsSettingsOpen: true } vm)
+        {
+            vm.IsSettingsOpen = false;
+            e.Handled = true;
+            return;
+        }
+        base.OnPreviewKeyDown(e);
+    }
+
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void Maximize_Click(object sender, RoutedEventArgs e) =>

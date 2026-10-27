@@ -108,6 +108,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ClearLogsCommand = new RelayCommand(() => Logs.Clear());
         SetModeCommand = new RelayCommand(p => SetModeAsync(p as string));
         CheckUpdatesCommand = new RelayCommand(() => CheckUpdatesAsync(manual: true), () => !IsCheckingUpdates);
+        SetThemeCommand = new RelayCommand(p => { SetTheme(p as string); return Task.CompletedTask; });
+        SetLangCommand = new RelayCommand(p => { SetLang(p as string); return Task.CompletedTask; });
+        ToggleSettingsCommand = new RelayCommand(() => IsSettingsOpen = !IsSettingsOpen);
+        SetTabCommand = new RelayCommand(p => { if (p is string tab) Tab = tab; return Task.CompletedTask; });
         _ = CheckUpdatesAsync(manual: false);
 
         // Leftover proxy from a crash? Put the user's settings back.
@@ -150,6 +154,10 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public ICommand ClearLogsCommand { get; }
     public ICommand SetModeCommand { get; }
     public ICommand CheckUpdatesCommand { get; }
+    public ICommand SetThemeCommand { get; }
+    public ICommand SetLangCommand { get; }
+    public ICommand ToggleSettingsCommand { get; }
+    public ICommand SetTabCommand { get; }
 
     /// <summary>Asks the window to quit (after an elevated instance was started).</summary>
     public event Action? QuitRequested;
@@ -285,6 +293,43 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         ThemeManager.Apply(_settings.Theme, _settings.Accent);
         OnPropertyChanged(nameof(ThemeMode));
         OnPropertyChanged(nameof(ThemeLabel));
+    }
+
+    private void SetTheme(string? mode)
+    {
+        _settings.Theme = mode is "dark" or "light" ? mode : "auto";
+        SettingsStore.Save(_settings);
+        ThemeManager.Apply(_settings.Theme, _settings.Accent);
+        OnPropertyChanged(nameof(ThemeMode));
+        OnPropertyChanged(nameof(ThemeLabel));
+    }
+
+    private void SetLang(string? mode)
+    {
+        _settings.Language = mode is "en" or "fr" ? mode : "auto";
+        SettingsStore.Save(_settings);
+        Loc.I.SetMode(_settings.Language);
+        OnPropertyChanged(nameof(LangMode));
+    }
+
+    /// <summary>"auto", "en" or "fr".</summary>
+    public string LangMode => _settings.Language is "en" or "fr" ? _settings.Language : "auto";
+
+    private bool _isSettingsOpen;
+    private string _tab = "overview";
+
+    /// <summary>The settings drawer on the right.</summary>
+    public bool IsSettingsOpen
+    {
+        get => _isSettingsOpen;
+        set => Set(ref _isSettingsOpen, value);
+    }
+
+    /// <summary>Inspector tab: "overview", "servers" or "plan".</summary>
+    public string Tab
+    {
+        get => _tab;
+        set => Set(ref _tab, value);
     }
 
     private void CycleLang()
@@ -541,6 +586,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                      nameof(ServerCount), nameof(FreshText), nameof(ThemeLabel), nameof(LangBadge),
                      nameof(GateButtonText), nameof(StateText), nameof(ActionHint), nameof(SelectedServerName),
                      nameof(RealDelay), nameof(ModeHint), nameof(UpdateLabel),
+                     nameof(HeroTitle), nameof(SlideLabel), nameof(LangMode),
                  })
             OnPropertyChanged(name);
         RebuildDetails();
@@ -605,11 +651,36 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(StateText));
             OnPropertyChanged(nameof(ActionHint));
             OnPropertyChanged(nameof(IsConnected));
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(IsOnSide));
+            OnPropertyChanged(nameof(HeroTitle));
+            OnPropertyChanged(nameof(SlideLabel));
             CommandManager.InvalidateRequerySuggested();
         }
     }
 
     public bool IsConnected => State == ConnectionState.Connected;
+
+    /// <summary>Connecting or disconnecting: the slider is locked.</summary>
+    public bool IsBusy => State is ConnectionState.Connecting or ConnectionState.Disconnecting;
+
+    /// <summary>The slider knob rests at the end (on, or on its way).</summary>
+    public bool IsOnSide => State is ConnectionState.Connected or ConnectionState.Connecting;
+
+    public string HeroTitle => Loc.T(State switch
+    {
+        ConnectionState.Connecting => "homeConnecting",
+        ConnectionState.Connected => "homeOn",
+        ConnectionState.Disconnecting => "homeDisconnecting",
+        _ => "homeOff",
+    });
+
+    public string SlideLabel => Loc.T(State switch
+    {
+        ConnectionState.Connected => "slideOff",
+        ConnectionState.Disconnected => "slideOn",
+        _ => "slideWait",
+    });
 
     public string StateText => Loc.T(State switch
     {

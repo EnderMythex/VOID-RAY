@@ -159,6 +159,26 @@ public sealed class Loc : INotifyPropertyChanged
         ["trayStillRunning"] = ("VOID-RAY keeps running in the notification area. Right-click the icon to quit.",
                                 "VOID-RAY reste ouvert dans la zone de notification. Clic droit sur l'icône pour quitter."),
         ["closeToTray"] = ("Close to notification area", "Fermer dans la zone de notification"),
+
+        // ---- home / layout
+        ["homeOff"] = ("Start your connection", "Lance ta connexion"),
+        ["homeConnecting"] = ("Connecting…", "Connexion…"),
+        ["homeOn"] = ("You're protected", "Tu es protégé"),
+        ["homeDisconnecting"] = ("Disconnecting…", "Déconnexion…"),
+        ["slideOn"] = ("Slide to turn on", "Glisse pour activer"),
+        ["slideOff"] = ("Slide to turn off", "Glisse pour désactiver"),
+        ["slideWait"] = ("Please wait…", "Patiente…"),
+        ["tabOverview"] = ("Overview", "Aperçu"),
+        ["tabServers"] = ("Servers", "Serveurs"),
+        ["tabPlan"] = ("Subscription", "Abonnement"),
+        ["settings"] = ("Settings", "Réglages"),
+        ["theme"] = ("Theme", "Thème"),
+        ["auto"] = ("Auto", "Auto"),
+        ["dark"] = ("Dark", "Sombre"),
+        ["light"] = ("Light", "Clair"),
+        ["about"] = ("About", "À propos"),
+        ["mode"] = ("Routing", "Routage"),
+        ["gateHeadline"] = ("Connect your subscription", "Connecte ton abonnement"),
     };
 
     private string _mode = "auto";

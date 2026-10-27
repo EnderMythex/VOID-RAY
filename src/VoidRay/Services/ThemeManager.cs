@@ -49,7 +49,7 @@ public static class ThemeManager
         Color bg, ink, ink2, muted, accent, accent2, warn, alert, white;
         if (IsLight)
         {
-            bg = Hex("#f2f4f9"); ink = Hex("#0d1220"); ink2 = Hex("#3d4761"); muted = Hex("#5f6982");
+            bg = Hex("#f4f5f9"); ink = Hex("#0b0d14"); ink2 = Hex("#3b4459"); muted = Hex("#697289");
             accent = accentPreset.Light; accent2 = Hex("#4a5fd4"); warn = Hex("#a8730d"); alert = Hex("#cf3450");
             white = Colors.White;
             var lineBase = Hex("#0f1629");
@@ -63,10 +63,22 @@ public static class ThemeManager
             r["ShadowColor"] = Hex("#18213a");
             r["ShadowOpacity"] = 0.18;
             r["AmbientOpacity"] = 0.30;
+            Set(r, "SurfaceBrush", A(lineBase, .045));
+            Set(r, "SurfaceHoverBrush", A(lineBase, .075));
+            r["GlassBrush"] = Gradient(A(white, .82), A(white, .62));
+            Set(r, "GlassLineBrush", A(lineBase, .08));
+            Set(r, "GlassHiBrush", A(white, 1));
+            Set(r, "SolidBrush", Hex("#0b0d12"));
+            Set(r, "OnSolidBrush", white);
+            Set(r, "DrawerBrush", Hex("#fbfbfd"));
+            Set(r, "ScrimBrush", A(Hex("#0b1020"), .28));
+            Set(r, "VeilBrush", Hex("#dfe0e8"));
+            r["WarmColor"] = Hex("#ffb27a");
+            r["AuroraOpacity"] = 0.55;
         }
         else
         {
-            bg = Hex("#07090e"); ink = Hex("#e8ecf4"); ink2 = Hex("#aab3c6"); muted = Hex("#737e96");
+            bg = Hex("#05060a"); ink = Hex("#eef1f7"); ink2 = Hex("#b3bbcc"); muted = Hex("#7a8399");
             accent = accentPreset.Dark; accent2 = Hex("#6d86ff"); warn = Hex("#e2b155"); alert = Hex("#ee6079");
             white = Colors.White;
             Set(r, "LineBrush", A(white, .075));
@@ -79,6 +91,18 @@ public static class ThemeManager
             r["ShadowColor"] = Colors.Black;
             r["ShadowOpacity"] = 0.55;
             r["AmbientOpacity"] = 0.42;
+            Set(r, "SurfaceBrush", A(white, .05));
+            Set(r, "SurfaceHoverBrush", A(white, .085));
+            r["GlassBrush"] = Gradient(A(white, .075), A(white, .028));
+            Set(r, "GlassLineBrush", A(white, .09));
+            Set(r, "GlassHiBrush", A(white, .16));
+            Set(r, "SolidBrush", Hex("#f2f4f8"));
+            Set(r, "OnSolidBrush", Hex("#0b0d12"));
+            Set(r, "DrawerBrush", Hex("#0c0e14"));
+            Set(r, "ScrimBrush", A(Colors.Black, .45));
+            Set(r, "VeilBrush", Hex("#232835"));
+            r["WarmColor"] = Hex("#ff9a62");
+            r["AuroraOpacity"] = 0.75;
         }
 
         Set(r, "BgBrush", bg);
@@ -109,6 +133,19 @@ public static class ThemeManager
         r["AmbientABrush"] = Radial(accent2);
         r["AmbientBBrush"] = Radial(accent);
         r["BrandGradient"] = new LinearGradientBrush(accent2, accent, 0);
+
+        // Aurora behind the window and the orb's colour field.
+        var warm = (Color)r["WarmColor"];
+        var pink = Mix(warm, Hex("#ff7eb6"), .6);
+        r["AuroraABrush"] = Radial(accent2);
+        r["AuroraBBrush"] = Radial(accent);
+        r["AuroraCBrush"] = Radial(warm);
+        r["OrbBaseBrush"] = new LinearGradientBrush(Mix(accent2, Colors.White, .45), Mix(accent, Colors.White, .35), 45);
+        r["OrbBlobABrush"] = Radial(warm);
+        r["OrbBlobBBrush"] = Radial(accent2);
+        r["OrbBlobCBrush"] = Radial(accent);
+        r["OrbBlobDBrush"] = Radial(pink);
+        r["HaloBrush"] = Radial(A(accent, .55));
     }
 
     private static void Set(ResourceDictionary r, string key, Color c)
