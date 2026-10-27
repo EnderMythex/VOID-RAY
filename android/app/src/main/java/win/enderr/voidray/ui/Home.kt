@@ -3,6 +3,7 @@ package win.enderr.voidray.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -47,6 +48,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -67,11 +70,15 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import win.enderr.voidray.vpn.VpnStatus
@@ -262,6 +269,49 @@ fun RoundButton(icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: 
 fun Sheet(visible: Boolean, title: String, onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
     val p = LocalPalette.current
     if (visible) BackHandler(onBack = onDismiss)
+
+    // Swipe down to close: from the header, or from the content once it is scrolled to the top.
+    val scope = rememberCoroutineScope()
+    val threshold = with(LocalDensity.current) { 110.dp.toPx() }
+    var dragY by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(visible) { if (visible) dragY = 0f }
+    val settle: (Float) -> Unit = { velocity ->
+        if (dragY > threshold || velocity > 1600f) {
+            onDismiss()
+        } else {
+            scope.launch { animate(dragY, 0f, animationSpec = spring(dampingRatio = .8f, stiffness = 500f)) { v, _ -> dragY = v } }
+        }
+    }
+    val nested = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y < 0f && dragY > 0f) {
+                    val used = maxOf(available.y, -dragY)
+                    dragY += used
+                    return Offset(0f, used)
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                if (available.y > 0f && source == NestedScrollSource.UserInput) {
+                    dragY += available.y
+                    return Offset(0f, available.y)
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (dragY > 0f) {
+                    settle(available.y)
+                    return available
+                }
+                return Velocity.Zero
+            }
+        }
+    }
+    val headerDrag = rememberDraggableState { delta -> dragY = (dragY + delta).coerceAtLeast(0f) }
+
     AnimatedVisibility(visible, enter = fadeIn(tween(200)), exit = fadeOut(tween(200))) {
         Box(
             Modifier
@@ -281,20 +331,30 @@ fun Sheet(visible: Boolean, title: String, onDismiss: () -> Unit, content: @Comp
                     Modifier
                         .fillMaxWidth()
                         .heightIn(max = maxHeight * .88f)
+                        .graphicsLayer { translationY = dragY }
+                        .nestedScroll(nested)
                         .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                         .background(p.sheet)
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
                         .navigationBarsPadding(),
                 ) {
-                    Box(Modifier.fillMaxWidth().padding(top = 10.dp), contentAlignment = Alignment.Center) {
+                    Column(
+                        Modifier.fillMaxWidth().draggable(
+                            state = headerDrag,
+                            orientation = Orientation.Vertical,
+                            onDragStopped = { velocity -> settle(velocity) },
+                        ),
+                    ) {
+                    Box(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp), contentAlignment = Alignment.Center) {
                         Box(Modifier.size(width = 40.dp, height = 4.dp).clip(CircleShape).background(p.ink.copy(alpha = .18f)))
                     }
-                    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 14.dp, top = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(start = 24.dp, end = 14.dp, top = 8.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(title, color = p.ink, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Box(
                             Modifier.size(40.dp).clip(CircleShape).background(p.surface).clickable(onClick = onDismiss),
                             contentAlignment = Alignment.Center,
                         ) { VIcon(Ico.close, tint = p.ink, size = 18.dp) }
+                    }
                     }
                     Column(
                         Modifier
