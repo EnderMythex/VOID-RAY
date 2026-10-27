@@ -53,7 +53,7 @@ fun palette(light: Boolean, accentIndex: Int): Palette {
         val lineBase = Color(0xFF0F1629)
         Palette(
             isLight = true,
-            bg = Color(0xFFF2F4F9), ink = Color(0xFF0D1220), ink2 = Color(0xFF3D4761), muted = Color(0xFF5F6982),
+            bg = Color(0xFFFAFAFC), ink = Color(0xFF0D1220), ink2 = Color(0xFF3D4761), muted = Color(0xFF5F6982),
             accent = a.light, accent2 = Color(0xFF4A5FD4), warn = Color(0xFFA8730D), alert = Color(0xFFCF3450),
             line = lineBase.copy(alpha = .09f), line2 = lineBase.copy(alpha = .06f), hi = white.copy(alpha = .95f),
             field = white.copy(alpha = .55f), fieldHover = white.copy(alpha = .85f),

@@ -147,6 +147,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         store.theme = themeMode
     }
 
+    fun setTheme(mode: String) {
+        themeMode = if (mode == "dark" || mode == "light") mode else "auto"
+        store.theme = themeMode
+    }
+
+    fun setLanguage(mode: String) {
+        store.language = if (mode == "en" || mode == "fr") mode else "auto"
+        L.setMode(store.language)
+        langTick++
+    }
+
+    val languageMode: String get() = L.mode
+
     fun setAccentIndex(i: Int) {
         accent = i
         store.accent = i

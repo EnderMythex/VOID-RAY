@@ -3,7 +3,6 @@ package win.enderr.voidray.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,7 +37,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -51,8 +51,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Popup
-import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
 import win.enderr.voidray.core.Brand
 import win.enderr.voidray.core.Format
@@ -60,99 +58,64 @@ import win.enderr.voidray.i18n.L
 import win.enderr.voidray.vpn.VpnState
 import win.enderr.voidray.vpn.VpnStatus
 
-/** Root: theme, ambient background, top bar, gate or dashboard, toast. */
+private enum class SheetKind { None, Servers, Account, Settings }
+
+/** Root: theme, gate or home, bottom sheets, toast. */
 @Composable
 fun VoidRayApp(vm: MainViewModel, systemDark: Boolean, status: VpnStatus, onToggleVpn: () -> Unit) {
     val light = when (vm.themeMode) { "light" -> true; "dark" -> false; else -> !systemDark }
     val p = palette(light, vm.accent)
+    var sheet by remember { mutableStateOf(SheetKind.None) }
 
     androidx.compose.runtime.CompositionLocalProvider(LocalPalette provides p) {
         key(vm.langTick) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(p.bg)
-                    .drawBehind {
-                        // Ambient glows, as on the page.
-                        drawCircle(
-                            Brush.radialGradient(
-                                listOf(p.accent2.copy(alpha = p.ambient), Color.Transparent),
-                                center = Offset(size.width * .05f, size.height * .02f), radius = size.maxDimension * .6f,
-                            ),
-                            radius = size.maxDimension * .6f, center = Offset(size.width * .05f, size.height * .02f),
-                        )
-                        drawCircle(
-                            Brush.radialGradient(
-                                listOf(p.accent.copy(alpha = p.ambient * .8f), Color.Transparent),
-                                center = Offset(size.width * .95f, size.height * .98f), radius = size.maxDimension * .55f,
-                            ),
-                            radius = size.maxDimension * .55f, center = Offset(size.width * .95f, size.height * .98f),
-                        )
-                    },
-            ) {
+            Box(Modifier.fillMaxSize().background(p.bg)) {
                 Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-                    TopBar(vm)
-                    if (vm.authenticated) Dashboard(vm, status, onToggleVpn) else Gate(vm)
+                    Header(vm) { sheet = SheetKind.Account }
+                    if (vm.authenticated) {
+                        Home(vm, status, onToggleVpn, openServers = { sheet = SheetKind.Servers }, openSettings = { sheet = SheetKind.Settings })
+                    } else {
+                        Gate(vm, openSettings = { sheet = SheetKind.Settings })
+                    }
                 }
-                ToastHost(vm, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp))
+                val close = { sheet = SheetKind.None }
+                Sheet(sheet == SheetKind.Servers, L.t("servers"), close) { ServersContent(vm, status) { sheet = SheetKind.None } }
+                Sheet(sheet == SheetKind.Account, L.t("account"), close) { AccountContent(vm) }
+                Sheet(sheet == SheetKind.Settings, L.t("settings"), close) { SettingsContent(vm) { sheet = SheetKind.None } }
+                ToastHost(vm, Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 70.dp))
                 UpdateDialog(vm)
             }
         }
     }
 }
 
-// ==================================================================== top bar
+// ==================================================================== header
 
 @Composable
-private fun TopBar(vm: MainViewModel) {
+private fun Header(vm: MainViewModel, openAccount: () -> Unit) {
     val p = LocalPalette.current
-    var paletteOpen by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Logo(Modifier.size(30.dp))
-        Spacer(Modifier.width(11.dp))
-        Column(Modifier.weight(1f)) {
-            Text(vm.title, color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(
-                if (vm.authenticated) vm.sid else "by EnderrVPN",
-                color = p.muted, fontFamily = Mono, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
-        }
-        Box {
-            IconBtn(Ico.palette, { paletteOpen = !paletteOpen })
-            if (paletteOpen) {
-                Popup(alignment = Alignment.TopEnd, offset = androidx.compose.ui.unit.IntOffset(0, 130), onDismissRequest = { paletteOpen = false }) {
-                    Row(Modifier.background(p.bg).border(1.dp, p.line).padding(8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Accents.forEachIndexed { i, a ->
-                            val selected = i == vm.accent
-                            Box(
-                                Modifier
-                                    .size(30.dp)
-                                    .border(1.dp, if (selected) p.ink else Color.Transparent)
-                                    .padding(3.dp)
-                                    .background(if (p.isLight) a.light else a.dark)
-                                    .clickable { vm.setAccentIndex(i); paletteOpen = false },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.width(7.dp))
-        Box(
-            Modifier.size(38.dp).background(p.field).border(1.dp, p.line).clickable { vm.cycleLanguage() },
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(vm.langBadge, color = p.ink2, fontFamily = Mono, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
-        }
-        Spacer(Modifier.width(7.dp))
-        Box(
-            Modifier.size(38.dp).background(p.field).border(1.dp, p.line).clickable { vm.cycleTheme() },
-            contentAlignment = Alignment.Center,
-        ) {
-            when (vm.themeMode) {
-                "dark" -> VIcon(Ico.moon)
-                "light" -> VIcon(Ico.sun)
-                else -> Box { VIcon(Ico.autoRing); VIcon(Ico.autoHalf) }
+    Row(
+        Modifier.fillMaxWidth().padding(start = 22.dp, end = 20.dp, top = 14.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Logo(Modifier.size(34.dp))
+        Spacer(Modifier.width(10.dp))
+        Text("VOID-RAY", color = p.ink, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.02).em,
+            modifier = Modifier.weight(1f), maxLines = 1)
+        if (vm.authenticated) {
+            // usage pill, opens the subscription sheet
+            Row(
+                Modifier
+                    .clip(CircleShape)
+                    .background(p.solid)
+                    .clickable(onClick = openAccount)
+                    .padding(start = 16.dp, end = 20.dp, top = 11.dp, bottom = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                VIcon(Ico.bolt, tint = p.onSolid, size = 18.dp)
+                Spacer(Modifier.width(8.dp))
+                val (value, unit) = vm.gaugeFigure
+                Text("$value $unit".trim(), color = p.onSolid, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
     }
@@ -170,95 +133,10 @@ fun Logo(modifier: Modifier = Modifier) {
     }
 }
 
-// ==================================================================== gate
+// ==================================================================== home
 
 @Composable
-private fun Gate(vm: MainViewModel) {
-    val p = LocalPalette.current
-    val clipboard = LocalClipboardManager.current
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Panel(Modifier.widthIn(max = 480.dp).align(Alignment.CenterHorizontally), padding = 24.dp) {
-            Logo(Modifier.size(52.dp))
-            Spacer(Modifier.height(18.dp))
-            Text(L.t("gateTitle"), color = p.ink, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-            Text(L.t("gateText"), color = p.muted, fontSize = 13.sp, lineHeight = 19.sp)
-            Spacer(Modifier.height(22.dp))
-            SectionHead(L.t("gateLabel"))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.weight(1f).height(44.dp).background(p.field).border(1.dp, if (vm.gateError != null) p.alertLine else p.line)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    if (vm.gateUrl.isEmpty()) Text(Brand.LINK_EXAMPLE, color = p.muted, fontFamily = Mono, fontSize = 12.sp, maxLines = 1)
-                    BasicTextField(
-                        value = vm.gateUrl,
-                        onValueChange = { vm.gateUrl = it },
-                        singleLine = true,
-                        textStyle = TextStyle(color = p.ink, fontFamily = Mono, fontSize = 12.sp),
-                        cursorBrush = SolidColor(p.accent),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
-                        keyboardActions = KeyboardActions(onGo = { vm.signIn() }),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                Spacer(Modifier.width(6.dp))
-                IconBtn(Ico.paste, { clipboard.getText()?.text?.let { vm.gateUrl = it.trim() } }, size = 44.dp)
-            }
-            vm.gateError?.let { err ->
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    err, color = p.alert, fontSize = 12.sp,
-                    modifier = Modifier.fillMaxWidth().background(p.alertSoft).border(1.dp, p.alertLine).padding(horizontal = 10.dp, vertical = 8.dp),
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Btn({ vm.signIn() }, Modifier.fillMaxWidth(), kind = BtnKind.Accent, enabled = !vm.validating, minHeight = 44.dp) {
-                BtnText(L.t(if (vm.validating) "gateChecking" else "gateButton"), size = 13.sp)
-                Spacer(Modifier.width(8.dp))
-                VIcon(Ico.arrowRight, tint = p.ink, size = 15.dp)
-            }
-            Spacer(Modifier.height(18.dp))
-            Row {
-                Text(L.t("gateHelp"), color = p.muted, fontSize = 12.sp)
-                Spacer(Modifier.width(6.dp))
-                Text(L.t("gateContact"), color = p.ink2, fontSize = 12.sp, modifier = Modifier.clickable { vm.openUrl(Brand.DEFAULT_SUPPORT_URL) })
-            }
-            Spacer(Modifier.height(8.dp))
-            Row {
-                Text(vm.currentVersion, color = p.muted, fontFamily = Mono, fontSize = 11.sp)
-                Text("  ·  ", color = p.muted.copy(alpha = .5f), fontSize = 11.sp)
-                Text(vm.updateLabel, color = if (vm.availableUpdate != null) p.accent else p.ink2, fontSize = 11.sp,
-                    modifier = Modifier.clickable { vm.checkUpdates(manual = true) })
-            }
-        }
-    }
-}
-
-// ==================================================================== dashboard
-
-@Composable
-private fun Dashboard(vm: MainViewModel, status: VpnStatus, onToggleVpn: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        ConnectionCard(vm, status, onToggleVpn)
-        UsageCard(vm)
-        LinkCard(vm)
-        ConfigsCard(vm)
-        DetailsCard(vm)
-        Footer(vm)
-        Spacer(Modifier.height(40.dp))
-    }
-}
-
-@Composable
-private fun ConnectionCard(vm: MainViewModel, status: VpnStatus, onToggleVpn: () -> Unit) {
+private fun Home(vm: MainViewModel, status: VpnStatus, onToggleVpn: () -> Unit, openServers: () -> Unit, openSettings: () -> Unit) {
     val p = LocalPalette.current
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(status) {
@@ -268,60 +146,217 @@ private fun ConnectionCard(vm: MainViewModel, status: VpnStatus, onToggleVpn: ()
         }
     }
     val connected = status == VpnStatus.Connected
-    Panel {
-        SectionHead(L.t("connection"))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.clip(CircleShape).clickable(
-                    interactionSource = remember { MutableInteractionSource() }, indication = null,
-                    enabled = status == VpnStatus.Connected || status == VpnStatus.Disconnected,
-                ) { onToggleVpn() },
-            ) { PowerButton(status) }
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    L.t(when (status) {
-                        VpnStatus.Connecting -> "stateConnecting"
-                        VpnStatus.Connected -> "stateOn"
-                        VpnStatus.Disconnecting -> "stateDisconnecting"
-                        VpnStatus.Disconnected -> "stateOff"
-                    }),
-                    color = if (connected) p.accent else p.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    L.t(when (status) { VpnStatus.Connected -> "hintOn"; VpnStatus.Disconnected -> "hintOff"; else -> "hintWait" }),
-                    color = p.muted, fontSize = 12.5.sp, modifier = Modifier.padding(top = 2.dp, bottom = 10.dp),
-                )
-                Row(
-                    Modifier.background(p.field).border(1.dp, p.line2).padding(horizontal = 10.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.size(7.dp).clip(CircleShape).background(if (connected) p.accent else p.muted))
-                    Spacer(Modifier.width(8.dp))
-                    Text(vm.selected?.name ?: L.t("noServer"), color = p.ink, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
+
+    Column(Modifier.fillMaxSize().padding(horizontal = 22.dp)) {
+        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Orb(status, Modifier.size(300.dp))
+        }
+
+        // server chip
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(14.dp))
+                .border(1.5.dp, p.ink, RoundedCornerShape(14.dp))
+                .clickable(onClick = openServers)
+                .padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(width = 34.dp, height = 26.dp).clip(RoundedCornerShape(6.dp)).background(p.solid), contentAlignment = Alignment.Center) {
+                VIcon(Ico.globe, tint = p.onSolid, size = 17.dp)
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(
+                vm.selected?.name ?: L.t("chooseServer"),
+                color = p.ink, fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 240.dp),
+            )
+            vm.selected?.pingText?.takeIf { it.isNotBlank() && it != "—" }?.let {
+                Spacer(Modifier.width(8.dp))
+                Text(it, color = p.muted, fontFamily = Mono, fontSize = 12.sp)
             }
         }
-        Spacer(Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val elapsed = if (connected) Format.duration((now - VpnState.connectedAt).coerceAtLeast(0) / 1000) else "00:00"
-            Flow(L.t("duration"), elapsed, Modifier.weight(1f))
-            Flow(L.t("realDelay"), vm.realDelay ?: "—", Modifier.weight(1f))
+
+        Spacer(Modifier.height(22.dp))
+        Text(
+            L.t(when (status) {
+                VpnStatus.Disconnected -> "homeOff"
+                VpnStatus.Connecting -> "homeConnecting"
+                VpnStatus.Connected -> "homeOn"
+                VpnStatus.Disconnecting -> "homeDisconnecting"
+            }),
+            color = p.ink, fontSize = 46.sp, lineHeight = 52.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.025).em,
+        )
+        Spacer(Modifier.height(10.dp))
+        // live details once protected, otherwise the subscription state
+        val line = if (connected) {
+            val elapsed = Format.duration((now - VpnState.connectedAt).coerceAtLeast(0) / 1000)
+            listOfNotNull(elapsed, vm.publicIp, vm.exitCountry, vm.realDelay).joinToString("  ·  ")
+        } else {
+            vm.status.first.takeIf { it != "—" }?.let { "$it  ·  ${vm.gaugeCaption}" } ?: ""
         }
-        Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Flow(L.t("publicIp"), vm.publicIp ?: "—", Modifier.weight(1f))
-            Flow(L.t("location"), vm.exitCountry ?: "—", Modifier.weight(1f))
+        Text(line, color = if (connected) p.accentText else p.muted, fontFamily = if (connected) Mono else null, fontSize = 13.sp,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.height(20.dp))
+
+        Spacer(Modifier.height(30.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SlideToConnect(
+                status,
+                L.t(when (status) {
+                    VpnStatus.Disconnected -> "slideOn"
+                    VpnStatus.Connected -> "slideOff"
+                    else -> "slideWait"
+                }),
+                onToggle = onToggleVpn,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(16.dp))
+            RoundButton(Ico.gear, openSettings)
+        }
+        Spacer(Modifier.height(26.dp))
+    }
+}
+
+// ==================================================================== gate
+
+@Composable
+private fun Gate(vm: MainViewModel, openSettings: () -> Unit) {
+    val p = LocalPalette.current
+    val clipboard = LocalClipboardManager.current
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 22.dp)) {
+        Box(Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.Center) {
+            Orb(VpnStatus.Disconnected, Modifier.size(240.dp))
+        }
+        Text(L.t("gateHeadline"), color = p.ink, fontSize = 40.sp, lineHeight = 46.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.025).em)
+        Spacer(Modifier.height(10.dp))
+        Text(L.t("gateText"), color = p.muted, fontSize = 14.sp, lineHeight = 20.sp)
+        Spacer(Modifier.height(22.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(p.surface)
+                .border(1.5.dp, if (vm.gateError != null) p.alert else Color.Transparent, RoundedCornerShape(18.dp))
+                .padding(start = 16.dp, end = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f).height(56.dp), contentAlignment = Alignment.CenterStart) {
+                if (vm.gateUrl.isEmpty()) Text(Brand.LINK_EXAMPLE, color = p.muted, fontFamily = Mono, fontSize = 13.sp, maxLines = 1)
+                BasicTextField(
+                    value = vm.gateUrl,
+                    onValueChange = { vm.gateUrl = it },
+                    singleLine = true,
+                    textStyle = TextStyle(color = p.ink, fontFamily = Mono, fontSize = 13.sp),
+                    cursorBrush = SolidColor(p.accent),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
+                    keyboardActions = KeyboardActions(onGo = { vm.signIn() }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Box(
+                Modifier.size(44.dp).clip(CircleShape).background(p.sheet).clickable { clipboard.getText()?.text?.let { vm.gateUrl = it.trim() } },
+                contentAlignment = Alignment.Center,
+            ) { VIcon(Ico.paste, tint = p.ink, size = 18.dp) }
+        }
+        vm.gateError?.let { err ->
+            Spacer(Modifier.height(8.dp))
+            Text(err, color = p.alert, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 6.dp))
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier
+                    .weight(1f)
+                    .height(64.dp)
+                    .clip(CircleShape)
+                    .background(p.solid.copy(alpha = if (vm.validating) .6f else 1f))
+                    .clickable(enabled = !vm.validating) { vm.signIn() },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                if (vm.validating) Spinner(p.onSolid, Modifier.size(20.dp)) else VIcon(Ico.arrowRight, tint = p.onSolid, size = 20.dp)
+                Spacer(Modifier.width(10.dp))
+                Text(L.t(if (vm.validating) "gateChecking" else "gateButton"), color = p.onSolid, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(16.dp))
+            RoundButton(Ico.gear, openSettings)
+        }
+        Spacer(Modifier.height(18.dp))
+        Row(Modifier.padding(horizontal = 6.dp)) {
+            Text(L.t("gateHelp"), color = p.muted, fontSize = 13.sp)
+            Spacer(Modifier.width(6.dp))
+            Text(L.t("gateContact"), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { vm.openUrl(Brand.DEFAULT_SUPPORT_URL) })
+        }
+        Spacer(Modifier.height(28.dp))
+    }
+}
+
+// ==================================================================== sheets
+
+@Composable
+private fun ServersContent(vm: MainViewModel, status: VpnStatus, done: () -> Unit) {
+    val p = LocalPalette.current
+    LaunchedEffect(Unit) { if (vm.servers.none { it.ping != null }) vm.pingAll() }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, bottom = 10.dp)) {
+        Text("${vm.servers.size} ${L.t("configs").lowercase()}", color = p.muted, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        Row(
+            Modifier.clip(CircleShape).background(p.surface).clickable { vm.pingAll() }.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            VIcon(Ico.bolt, tint = p.ink, size = 14.dp)
+            Spacer(Modifier.width(6.dp))
+            Text(L.t("testPing"), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+    if (vm.servers.isEmpty()) {
+        Text(L.t("noConfigs"), color = p.muted, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (item in vm.servers) {
+            val selected = item.profile.key == vm.selectedKey
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (selected) p.accentSoft else p.surface)
+                    .border(1.5.dp, if (selected) p.accent else Color.Transparent, RoundedCornerShape(18.dp))
+                    .clickable(enabled = status == VpnStatus.Disconnected || selected) { vm.select(item); done() }
+                    .padding(start = 16.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(item.name, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(5.dp))
+                    Row {
+                        Tag(item.protocolTag, TagKind.Proto)
+                        Tag(item.networkTag)
+                        item.securityTag?.let { Tag(it, TagKind.Sec) }
+                        if (item.profile.isBypassPatched) Tag("BYPASS", TagKind.Warn)
+                    }
+                }
+                Text(
+                    item.pingText,
+                    color = when (item.quality) {
+                        PingQuality.Good -> p.accent
+                        PingQuality.Medium -> p.warn
+                        PingQuality.Bad, PingQuality.Timeout -> p.alert
+                        else -> p.muted
+                    },
+                    fontFamily = Mono, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+                if (selected) VIcon(Ico.check, tint = p.accent, size = 20.dp)
+            }
         }
     }
 }
 
 @Composable
-private fun UsageCard(vm: MainViewModel) {
+private fun AccountContent(vm: MainViewModel) {
     val p = LocalPalette.current
-    Panel(padding = 0.dp) {
-        Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Group(padding = 0.dp) {
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.size(width = 250.dp, height = 178.dp)) {
                 TickGauge(
                     ratio = vm.ratio, unlimited = vm.unlimited, live = vm.live,
@@ -331,8 +366,7 @@ private fun UsageCard(vm: MainViewModel) {
                 Column(Modifier.align(Alignment.TopCenter).padding(top = 90.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     val (value, unit) = vm.gaugeFigure
                     Row(verticalAlignment = Alignment.Bottom) {
-                        Text(value, color = p.ink, fontFamily = Mono, fontSize = 30.sp, fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.04).em)
+                        Text(value, color = p.ink, fontFamily = Mono, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.04).em)
                         Text(unit, color = p.muted, fontFamily = Mono, fontSize = 15.sp, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
                     }
                     Label(vm.gaugeCaption, size = 9.5.sp, spacing = 0.14.em)
@@ -340,186 +374,150 @@ private fun UsageCard(vm: MainViewModel) {
             }
             val (statusLabel, statusTone) = vm.status
             Row(
-                Modifier.background(p.field).border(1.dp, p.line).padding(start = 9.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+                Modifier.clip(CircleShape).background(p.sheet).padding(start = 10.dp, end = 14.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(6.dp).clip(CircleShape).background(toneColor(statusTone, p.accent)))
-                Spacer(Modifier.width(7.dp))
-                Text(statusLabel, color = toneColor(statusTone, p.accent), fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold)
+                Box(Modifier.size(7.dp).clip(CircleShape).background(toneColor(statusTone, p.accent)))
+                Spacer(Modifier.width(8.dp))
+                Text(statusLabel, color = toneColor(statusTone, p.accent), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Flow(L.t("upload"), Format.bytes(vm.sub?.upload ?: 0), Modifier.weight(1f), Ico.up, p.accent2)
-                Flow(L.t("download"), Format.bytes(vm.sub?.download ?: 0), Modifier.weight(1f), Ico.down, p.accent)
+            Spacer(Modifier.height(16.dp))
+            Row(Modifier.fillMaxWidth()) {
+                Stat("↑ " + L.t("upload"), Format.bytes(vm.sub?.upload ?: 0), Modifier.weight(1f))
+                Stat("↓ " + L.t("download"), Format.bytes(vm.sub?.download ?: 0), Modifier.weight(1f))
             }
         }
-        Box(Modifier.fillMaxWidth().height(1.dp).background(p.line2))
-        Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 11.dp, bottom = 13.dp)) {
-            Row(Modifier.fillMaxWidth().padding(bottom = 7.dp)) {
-                Label(L.t("history"))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(p.ink.copy(alpha = .06f)))
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                Text(L.t("history"), color = p.muted, fontSize = 13.sp)
                 Spacer(Modifier.weight(1f))
-                Text(vm.historyAverage, color = p.ink2, fontFamily = Mono, fontSize = 11.sp)
+                Text(vm.historyAverage, color = p.ink2, fontFamily = Mono, fontSize = 12.sp)
             }
             if (vm.history.any { it != null }) {
-                UsageBars(vm.history, bar = p.accent.copy(alpha = .58f), void = p.line, modifier = Modifier.fillMaxWidth().height(48.dp))
+                UsageBars(vm.history, bar = p.accent.copy(alpha = .7f), void = p.ink.copy(alpha = .08f), modifier = Modifier.fillMaxWidth().height(52.dp))
             } else {
-                Text(L.t("histWait"), color = p.muted, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Text(L.t("histWait"), color = p.muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
             }
         }
     }
-}
 
-@Composable
-private fun LinkCard(vm: MainViewModel) {
-    val p = LocalPalette.current
-    Panel {
-        SectionHead(L.t("link"))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.weight(1f).height(40.dp).background(p.field).border(1.dp, p.line2).padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Text(vm.subscriptionUrl, color = p.ink2, fontFamily = Mono, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Spacer(Modifier.width(6.dp))
-            IconBtn(Ico.refresh, { vm.refreshNow() }, size = 40.dp)
-            Spacer(Modifier.width(6.dp))
-            IconBtn(Ico.exit, { vm.changeLink() }, size = 40.dp)
-        }
-        Spacer(Modifier.height(8.dp))
-        Btn({ vm.copy(vm.subscriptionUrl, L.t("lblLink")) }, Modifier.fillMaxWidth(), kind = BtnKind.Accent) {
-            VIcon(Ico.copy, tint = p.ink, size = 14.dp)
-            Spacer(Modifier.width(7.dp))
-            BtnText(L.t("copy"))
-        }
-    }
-}
-
-@Composable
-private fun ConfigsCard(vm: MainViewModel) {
-    val p = LocalPalette.current
-    Panel(padding = 14.dp) {
-        SectionHead(L.t("configs")) {
-            Text("${vm.servers.size}", color = p.muted, fontFamily = Mono, fontSize = 11.sp, modifier = Modifier.padding(end = 10.dp))
-            Btn({ vm.pingAll() }, minHeight = 30.dp) {
-                VIcon(Ico.bolt, tint = p.accent, size = 12.dp)
-                Spacer(Modifier.width(6.dp))
-                BtnText(L.t("testPing"), size = 11.5.sp)
-            }
-        }
-        if (vm.servers.isEmpty()) {
-            Text(L.t("noConfigs"), color = p.muted, fontSize = 12.5.sp, textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            for (item in vm.servers) {
-                val selected = item.profile.key == vm.selectedKey
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .background(if (selected) p.accentSoft else p.field)
-                        .border(1.dp, if (selected) p.accent else p.line2)
-                        .clickable { vm.select(item) }
-                        .padding(start = 11.dp, end = 6.dp, top = 8.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Row {
-                            Tag(item.protocolTag, TagKind.Proto)
-                            Tag(item.networkTag)
-                            item.securityTag?.let { Tag(it, TagKind.Sec) }
-                            if (item.profile.isBypassPatched) Tag("BYPASS", TagKind.Warn)
-                        }
-                        Spacer(Modifier.height(5.dp))
-                        Text(item.name, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    }
-                    Text(
-                        item.pingText,
-                        color = when (item.quality) {
-                            PingQuality.Good -> p.accent
-                            PingQuality.Medium -> p.warn
-                            PingQuality.Bad, PingQuality.Timeout -> p.alert
-                            else -> p.muted
-                        },
-                        fontFamily = Mono, fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                    )
-                    IconBtn(Ico.copy, { vm.copy(item.profile.rawLink, L.t("lblConfig")) }, size = 32.dp)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetailsCard(vm: MainViewModel) {
-    val p = LocalPalette.current
-    Panel(padding = 0.dp) {
-        SectionHead(L.t("details"), Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp))
+    GroupTitle(L.t("details"))
+    Group(padding = 0.dp) {
         vm.detailRows.forEachIndexed { i, row ->
-            if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(p.line2))
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(row.key, color = p.muted, fontSize = 12.sp, modifier = Modifier.width(130.dp))
+            if (i > 0) Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(p.ink.copy(alpha = .06f)))
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(row.key, color = p.muted, fontSize = 14.sp, modifier = Modifier.width(130.dp))
                 Spacer(Modifier.weight(1f))
                 if (row.chip) {
                     Chip(row.value, row.tone)
                 } else {
                     Text(
-                        row.value,
-                        color = toneColor(row.tone),
+                        row.value, color = toneColor(row.tone),
                         fontFamily = if (row.mono) Mono else null,
-                        fontSize = if (row.mono) 12.sp else 13.sp,
-                        fontWeight = if (row.mono) FontWeight.Normal else FontWeight.SemiBold,
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
                         modifier = Modifier.weight(3f, fill = false),
                     )
-                    row.hint?.let { Text(" · $it", color = p.muted, fontSize = 12.sp, maxLines = 1) }
+                    row.hint?.let { Text(" · $it", color = p.muted, fontSize = 13.sp, maxLines = 1) }
                 }
             }
         }
-        Btn({ vm.copy(vm.sid, L.t("lblId")) }, Modifier.fillMaxWidth().padding(16.dp)) {
-            VIcon(Ico.copy, tint = p.ink, size = 14.dp)
-            Spacer(Modifier.width(7.dp))
-            BtnText(L.t("copyId"))
+    }
+    Spacer(Modifier.height(12.dp))
+    PillButton(L.t("copyId"), Ico.copy) { vm.copy(vm.sid, L.t("lblId")) }
+}
+
+@Composable
+private fun SettingsContent(vm: MainViewModel, close: () -> Unit) {
+    val p = LocalPalette.current
+    GroupTitle(L.t("theme"))
+    Segmented(listOf("auto" to L.t("auto"), "dark" to L.t("dark"), "light" to L.t("light")), vm.themeMode) { vm.setTheme(it) }
+
+    GroupTitle(L.t("accentLabel"))
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Accents.forEachIndexed { i, a ->
+            val on = i == vm.accent
+            Box(
+                Modifier
+                    .size(46.dp)
+                    .clip(CircleShape)
+                    .border(2.dp, if (on) p.ink else Color.Transparent, CircleShape)
+                    .padding(5.dp)
+                    .clip(CircleShape)
+                    .background(if (p.isLight) a.light else a.dark)
+                    .clickable { vm.setAccentIndex(i) },
+                contentAlignment = Alignment.Center,
+            ) { if (on) VIcon(Ico.check, tint = Color.White, size = 18.dp) }
         }
+    }
+
+    GroupTitle(L.t("langLabel"))
+    Segmented(listOf("auto" to L.t("auto"), "en" to "English", "fr" to "Français"), vm.languageMode) { vm.setLanguage(it) }
+
+    if (vm.authenticated) {
+        GroupTitle(L.t("link"))
+        Group {
+            Text(vm.subscriptionUrl, color = p.ink2, fontFamily = Mono, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SmallPill(L.t("copy"), Ico.copy, Modifier.weight(1f)) { vm.copy(vm.subscriptionUrl, L.t("lblLink")) }
+                SmallPill(L.t("refresh"), Ico.refresh, Modifier.weight(1f)) { vm.refreshNow() }
+            }
+            Spacer(Modifier.height(8.dp))
+            SmallPill(L.t("changeLink"), Ico.exit, Modifier.fillMaxWidth()) { close(); vm.changeLink() }
+        }
+    }
+
+    GroupTitle(L.t("about"))
+    Group(padding = 0.dp) {
+        SettingsRow(L.t("updCheck"), vm.updateLabel, accent = vm.availableUpdate != null) { vm.checkUpdates(manual = true) }
+        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(p.ink.copy(alpha = .06f)))
+        SettingsRow(L.t("support"), "") { vm.openUrl(vm.supportUrl) }
+    }
+    Spacer(Modifier.height(14.dp))
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { delay(30_000); now = System.currentTimeMillis() } }
+    Text(
+        listOfNotNull(vm.currentVersion, if (vm.authenticated) vm.freshText(now) else null).joinToString("  ·  "),
+        color = p.muted, fontFamily = Mono, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun SettingsRow(title: String, value: String, accent: Boolean = false, onClick: () -> Unit) {
+    val p = LocalPalette.current
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 15.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, color = p.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+        if (value.isNotEmpty()) Text(value, color = if (accent) p.accent else p.muted, fontSize = 13.sp, maxLines = 1)
+        Spacer(Modifier.width(6.dp))
+        VIcon(Ico.chevronRight, tint = p.muted, size = 16.dp)
     }
 }
 
 @Composable
-private fun Footer(vm: MainViewModel) {
+private fun PillButton(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
     val p = LocalPalette.current
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(30_000)
-            now = System.currentTimeMillis()
-        }
+    Row(
+        Modifier.fillMaxWidth().height(54.dp).clip(CircleShape).background(p.solid).clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+    ) {
+        VIcon(icon, tint = p.onSolid, size = 17.dp)
+        Spacer(Modifier.width(9.dp))
+        Text(text, color = p.onSolid, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
     }
-    Column(Modifier.padding(horizontal = 4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(vm.accounts, color = p.muted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Text("  ·  ", color = p.muted.copy(alpha = .5f), fontSize = 11.sp)
-            Text(L.t("support"), color = p.ink2, fontSize = 11.sp, modifier = Modifier.clickable { vm.openUrl(vm.supportUrl) })
-        }
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(5.dp).clip(CircleShape).background(p.accent.copy(alpha = if (vm.refreshing) 1f else .55f)))
-            Spacer(Modifier.width(6.dp))
-            Text(vm.freshText(now), color = p.muted, fontFamily = Mono, fontSize = 10.5.sp)
-        }
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(vm.currentVersion, color = p.muted, fontFamily = Mono, fontSize = 10.5.sp)
-            Text("  ·  ", color = p.muted.copy(alpha = .5f), fontSize = 11.sp)
-            Text(
-                vm.updateLabel,
-                color = if (vm.availableUpdate != null) p.accent else p.ink2,
-                fontSize = 11.sp,
-                fontWeight = if (vm.availableUpdate != null) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier.clickable { vm.checkUpdates(manual = true) },
-            )
-        }
+}
+
+@Composable
+private fun SmallPill(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier, onClick: () -> Unit) {
+    val p = LocalPalette.current
+    Row(
+        modifier.height(44.dp).clip(CircleShape).background(p.sheet).clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+    ) {
+        VIcon(icon, tint = p.ink, size = 15.dp)
+        Spacer(Modifier.width(7.dp))
+        Text(text, color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
@@ -530,26 +528,24 @@ private fun UpdateDialog(vm: MainViewModel) {
     val p = LocalPalette.current
     val release = vm.updatePrompt ?: return
     androidx.compose.ui.window.Dialog(onDismissRequest = { vm.dismissUpdate() }) {
-        Column(Modifier.background(p.bg).border(1.dp, p.line).padding(20.dp)) {
-            Text(L.t("updTitle", release.tag), color = p.ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-            Text(L.t("updText", vm.currentVersion), color = p.muted, fontSize = 12.5.sp, lineHeight = 18.sp)
+        Column(Modifier.clip(RoundedCornerShape(28.dp)).background(p.sheet).padding(22.dp)) {
+            Text(L.t("updTitle", release.tag), color = p.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            Text(L.t("updText", vm.currentVersion), color = p.muted, fontSize = 14.sp, lineHeight = 20.sp)
             if (release.notes.isNotBlank()) {
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 Text(
-                    release.notes.trim().take(600),
-                    color = p.ink2, fontSize = 12.sp, lineHeight = 17.sp,
-                    modifier = Modifier.fillMaxWidth().background(p.field).border(1.dp, p.line2).padding(10.dp),
+                    release.notes.trim().take(600), color = p.ink2, fontSize = 13.sp, lineHeight = 18.sp,
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(p.surface).padding(12.dp),
                 )
             }
-            Spacer(Modifier.height(16.dp))
-            Btn({ vm.installUpdate() }, Modifier.fillMaxWidth(), kind = BtnKind.Accent, minHeight = 44.dp) {
-                BtnText(L.t("updInstall"), size = 13.sp)
-            }
-            Spacer(Modifier.height(8.dp))
-            Btn({ vm.dismissUpdate() }, Modifier.fillMaxWidth()) {
-                BtnText(L.t("updLater"))
-            }
+            Spacer(Modifier.height(18.dp))
+            PillButton(L.t("updInstall"), Ico.down) { vm.installUpdate() }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L.t("updLater"), color = p.ink2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable { vm.dismissUpdate() }.padding(vertical = 14.dp),
+            )
         }
     }
 }
@@ -565,15 +561,13 @@ private fun ToastHost(vm: MainViewModel, modifier: Modifier) {
         vm.dismissToast(msg)
     }
     Box(modifier.padding(horizontal = 24.dp)) {
-        Text(
-            msg.text,
-            color = p.ink,
-            fontSize = 12.5.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier
-                .background(p.bg)
-                .border(1.dp, if (msg.error) p.alertLine else p.accentLine)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-        )
+        Row(
+            Modifier.clip(CircleShape).background(p.solid).padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(if (msg.error) p.alert else p.accent))
+            Spacer(Modifier.width(10.dp))
+            Text(msg.text, color = p.onSolid, fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
+        }
     }
 }
