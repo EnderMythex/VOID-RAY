@@ -1,0 +1,31 @@
+name: Desktop
+
+# The Windows app (Rust + Tauri). The artifact is the portable VoidRay.exe.
+on:
+  push:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  pull_request:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Build
+        run: npx --yes @tauri-apps/cli@2 build --no-bundle
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoidRay-windows
+          path: desktop/src-tauri/target/release/VoidRay.exe

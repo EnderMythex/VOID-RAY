@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VOID-RAY</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- living background -->
+  <div class="aurora" aria-hidden="true"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- ===================================================== title bar -->
+  <header class="titlebar" data-tauri-drag-region>
+    <div class="brand" data-tauri-drag-region>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><use href="#logo"/></svg>
+      <span class="wordmark" data-tauri-drag-region>VOID-RAY</span>
+      <span class="identity" id="identity" data-tauri-drag-region>by EnderrVPN</span>
+    </div>
+    <div class="win">
+      <button class="pill-update" id="update-pill" hidden>
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg><span id="update-pill-text"></span>
+      </button>
+      <button class="wbtn" id="win-min" aria-label="Minimize"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+      <button class="wbtn" id="win-max" aria-label="Maximize"><svg viewBox="0 0 24 24"><rect x="5.5" y="5.5" width="13" height="13" rx="2"/></svg></button>
+      <button class="wbtn close" id="win-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </header>
+
+  <!-- ===================================================== gate -->
+  <main class="gate" id="gate" hidden>
+    <div class="gate-visual"><div class="orb" data-state="disconnected"><div class="halo"></div><div class="sphere"><i></i><i></i><i></i><i></i><b class="veil"></b><b class="gloss"></b></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
+    <section class="gate-form">
+      <h1 class="headline" data-i18n="gateHeadline"></h1>
+      <p class="lede" data-i18n="gateText"></p>
+      <div class="field">
+        <input id="gate-input" type="url" spellcheck="false" autocomplete="off" placeholder="https://sub.enderr.win/ender/…">
+        <button class="icon-btn" id="gate-paste" aria-label="Paste"><svg viewBox="0 0 24 24"><path d="M9 4h6v3H9zM15 5h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h3"/></svg></button>
+      </div>
+      <p class="error" id="gate-error" hidden></p>
+      <div class="cta-row">
+        <button class="solid big" id="gate-submit"><span id="gate-submit-txt" data-i18n="gateButton"></span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button class="round" id="gate-settings" aria-label="Settings"><svg viewBox="0 0 24 24"><use href="#gear"/></svg></button>
+      </div>
+      <p class="help"><span data-i18n="gateHelp"></span> <a href="#" id="gate-support" data-i18n="gateContact"></a></p>
+    </section>
+  </main>
+
+  <!-- ===================================================== home -->
+  <main class="home" id="home" hidden>
+    <section class="hero">
+      <div class="hero-visual"><div class="orb" id="orb" data-state="disconnected"><div class="halo"></div><div class="sphere"><i></i><i></i><i></i><i></i><b class="veil"></b><b class="gloss"></b></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
+
+      <div class="hero-copy">
+        <button class="server-chip" id="server-chip">
+          <span class="globe"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.6 5.6 3.6 9s-1.1 6.5-3.6 9c-2.5-2.5-3.6-5.6-3.6-9S9.5 5.5 12 3z"/></svg></span>
+          <span class="name" id="server-name"></span>
+          <span class="ping" id="server-ping"></span>
+        </button>
+        <h1 class="headline" id="hero-title"></h1>
+        <p class="live" id="live"><i class="dot"></i><b id="state-text"></b><span id="live-detail"></span></p>
+
+        <div class="action-row">
+          <div class="slider" id="slider" tabindex="0" role="switch" aria-checked="false">
+            <div class="slider-fill" id="slider-fill"></div>
+            <span class="slider-label" id="slider-label"></span>
+            <div class="knob" id="knob">
+              <svg class="i-on" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              <svg class="i-off" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+              <svg class="i-busy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>
+            </div>
+          </div>
+          <button class="round" id="home-settings" aria-label="Settings"><svg viewBox="0 0 24 24"><use href="#gear"/></svg></button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="inspector glass">
+      <nav class="tabs seg" id="tabs">
+        <span class="seg-thumb"></span>
+        <button data-tab="overview" data-i18n="tabOverview"></button>
+        <button data-tab="servers" data-i18n="tabServers"></button>
+        <button data-tab="plan" data-i18n="tabPlan"></button>
+      </nav>
+
+      <!-- overview -->
+      <div class="page" data-page="overview">
+        <h3 data-i18n="connection"></h3>
+        <div class="tiles">
+          <div class="tile"><span data-i18n="duration"></span><b id="t-elapsed">00:00</b></div>
+          <div class="tile"><span data-i18n="realDelay"></span><b id="t-delay">—</b></div>
+          <div class="tile"><span data-i18n="publicIp"></span><b id="t-ip">—</b></div>
+          <div class="tile"><span data-i18n="location"></span><b id="t-country">—</b></div>
+        </div>
+        <h3 data-i18n="mode"></h3>
+        <div class="seg" id="mode-seg">
+          <span class="seg-thumb"></span>
+          <button data-mode="tun" data-i18n="modeTun"></button>
+          <button data-mode="proxy" data-i18n="modeProxy"></button>
+        </div>
+        <p class="hint" id="mode-hint"></p>
+        <h3 data-i18n="tabPlan"></h3>
+        <button class="plan-card" id="plan-card">
+          <div><b class="big-num" id="o-value">—</b><span class="unit" id="o-unit"></span><p id="o-caption"></p></div>
+          <span class="status" id="o-status"><i></i><span></span></span>
+        </button>
+        <div class="bars" id="o-bars"></div>
+      </div>
+
+      <!-- servers -->
+      <div class="page" data-page="servers" hidden>
+        <div class="page-head"><h3 id="server-count"></h3><button class="ghost small" id="ping-all"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg><span data-i18n="testPing"></span></button></div>
+        <ul class="servers" id="servers"></ul>
+        <p class="empty" id="no-servers" data-i18n="noConfigs" hidden></p>
+      </div>
+
+      <!-- subscription -->
+      <div class="page" data-page="plan" hidden>
+        <div class="gauge-card">
+          <svg class="gauge" viewBox="0 0 200 152"><g id="ticks"></g></svg>
+          <div class="gauge-text"><b id="g-value">—</b><span id="g-unit"></span><p id="g-caption"></p></div>
+          <span class="status" id="g-status"><i></i><span></span></span>
+          <div class="updown">
+            <div><span><svg viewBox="0 0 24 24" class="up"><path d="M12 19V5M5 12l7-7 7 7"/></svg><em data-i18n="upload"></em></span><b id="g-up">—</b></div>
+            <div><span><svg viewBox="0 0 24 24" class="down"><path d="M12 5v14M19 12l-7 7-7-7"/></svg><em data-i18n="download"></em></span><b id="g-down">—</b></div>
+          </div>
+        </div>
+        <div class="page-head"><h3 data-i18n="history"></h3><span class="avg" id="hist-avg"></span></div>
+        <div class="bars tall" id="p-bars"></div>
+        <h3 data-i18n="details"></h3>
+        <div class="details" id="details"></div>
+        <button class="ghost wide" id="copy-id"><svg viewBox="0 0 24 24"><path d="M9 9h12v12H9zM5 15V5a2 2 0 0 1 2-2h10"/></svg><span data-i18n="copyId"></span></button>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer" id="footer">
+    <div class="left" id="foot-left"><i class="dot" id="fresh-dot"></i><span id="fresh"></span><span class="sep">·</span><span id="accounts"></span></div>
+    <div class="right"><span class="mono" id="version"></span><a href="#" id="foot-update"></a><a href="#" id="foot-support" data-i18n="support"></a></div>
+  </footer>
+
+  <!-- ===================================================== settings drawer -->
+  <div class="overlay" id="settings" hidden>
+    <div class="scrim" data-close></div>
+    <aside class="drawer">
+      <div class="drawer-head"><h2 data-i18n="settings"></h2><button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+      <div class="drawer-body">
+        <h3 data-i18n="theme"></h3>
+        <div class="seg" id="theme-seg"><span class="seg-thumb"></span><button data-v="auto" data-i18n="auto"></button><button data-v="dark" data-i18n="dark"></button><button data-v="light" data-i18n="light"></button></div>
+        <h3 data-i18n="accentLabel"></h3>
+        <div class="swatches" id="swatches"></div>
+        <h3 data-i18n="langLabel"></h3>
+        <div class="seg" id="lang-seg"><span class="seg-thumb"></span><button data-v="auto" data-i18n="auto"></button><button data-v="en">English</button><button data-v="fr">Français</button></div>
+        <div id="link-block">
+          <h3 data-i18n="link"></h3>
+          <div class="card">
+            <p class="mono url" id="sub-url"></p>
+            <div class="row3">
+              <button class="ghost" id="copy-link"><svg viewBox="0 0 24 24"><path d="M9 9h12v12H9zM5 15V5a2 2 0 0 1 2-2h10"/></svg><span data-i18n="copy"></span></button>
+              <button class="ghost" id="refresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg><span data-i18n="refresh"></span></button>
+              <button class="ghost" id="change-link"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg><span data-i18n="changeLink"></span></button>
+            </div>
+          </div>
+        </div>
+        <h3 data-i18n="about"></h3>
+        <div class="card list">
+          <button class="row" id="check-update"><span class="mono" id="about-version"></span><em id="about-update"></em><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button class="row" id="about-support"><span data-i18n="support"></span><em></em><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+          <button class="row danger" id="quit"><span data-i18n="trayQuit"></span><em></em><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+        </div>
+        <div class="page-head"><h3 data-i18n="log"></h3><span><button class="ghost small" id="copy-logs" data-i18n="copy"></button> <button class="ghost small" id="clear-logs" data-i18n="clear"></button></span></div>
+        <pre class="log mono" id="log"></pre>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===================================================== dialog + toast -->
+  <div class="overlay" id="dialog" hidden>
+    <div class="scrim"></div>
+    <div class="dialog glass">
+      <h2 id="dlg-title"></h2>
+      <p id="dlg-text"></p>
+      <pre id="dlg-notes" hidden></pre>
+      <div class="dlg-actions"><button class="ghost" id="dlg-no"></button><button class="solid" id="dlg-yes"></button></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"><i></i><span></span></div>
+
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--accent-2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient>
+      <symbol id="logo" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="url(#lg)" stroke-width="3"/><circle cx="16" cy="16" r="4" fill="url(#lg)"/><path d="M2 30 30 2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></symbol>
+      <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1.1 1.6V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    </defs>
+  </svg>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

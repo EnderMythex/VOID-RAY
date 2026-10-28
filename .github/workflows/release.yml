@@ -34,17 +34,22 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-node@v4
         with:
-          dotnet-version: 8.0.x
-      - name: Publish
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Build (Rust + Tauri)
         shell: bash
         run: |
           version="${VERSION#v}"
-          dotnet publish src/VoidRay -c Release -r win-x64 --self-contained true \
-            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
-            -p:Version="$version" -o publish
-          mkdir -p out && cp publish/VoidRay.exe out/VoidRay-win-x64.exe
+          # The app compares its own version with the latest release.
+          sed -i "0,/^version = .*/s//version = \"$version\"/" desktop/src-tauri/Cargo.toml
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$version\"/" desktop/src-tauri/tauri.conf.json
+          cd desktop && npx --yes @tauri-apps/cli@2 build --no-bundle
+          cd .. && mkdir -p out && cp desktop/src-tauri/target/release/VoidRay.exe out/VoidRay-win-x64.exe
       - uses: actions/upload-artifact@v4
         with:
           name: windows

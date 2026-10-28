@@ -6,3 +6,8 @@ obj/
 publish/
 .claude/settings.local.json
 brag-output*/
+
+# Rust desktop app
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/node_modules/
