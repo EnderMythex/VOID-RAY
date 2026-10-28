@@ -548,7 +548,7 @@
                             <Ellipse x:Name="Spinner" Width="24" Height="24" Stroke="{DynamicResource OnSolidBrush}" StrokeThickness="2.5"
                                      StrokeDashArray="6 3" StrokeDashCap="Round" RenderTransformOrigin="0.5,0.5" Visibility="Collapsed">
                                 <Ellipse.RenderTransform>
-                                    <RotateTransform x:Name="SpinnerTurn" />
+                                    <RotateTransform />
                                 </Ellipse.RenderTransform>
                             </Ellipse>
                         </Grid>
@@ -567,7 +567,7 @@
                             <Trigger.EnterActions>
                                 <BeginStoryboard x:Name="Spin">
                                     <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="SpinnerTurn" Storyboard.TargetProperty="Angle"
+                                        <DoubleAnimation Storyboard.TargetName="Spinner" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                                          From="0" To="360" Duration="0:0:0.9" RepeatBehavior="Forever" />
                                     </Storyboard>
                                 </BeginStoryboard>
@@ -588,9 +588,9 @@
     <!-- ============================================================ the orb -->
     <!-- ContentControl with Tag = connection state. Drawn on a 320×320 grid. -->
     <ControlTemplate x:Key="OrbTemplate" TargetType="ContentControl">
-        <Grid Width="320" Height="320" RenderTransformOrigin="0.5,0.5">
+        <Grid x:Name="OrbRoot" Width="320" Height="320" RenderTransformOrigin="0.5,0.5">
             <Grid.RenderTransform>
-                <ScaleTransform x:Name="Breath" />
+                <ScaleTransform />
             </Grid.RenderTransform>
 
             <Ellipse x:Name="Halo" Margin="-110" Fill="{DynamicResource HaloBrush}" Opacity="0" IsHitTestVisible="False" />
@@ -598,7 +598,7 @@
             <Ellipse x:Name="Ring" Margin="-16" Stroke="{DynamicResource AccentBrush}" StrokeThickness="3"
                      StrokeDashArray="14 60" StrokeDashCap="Round" Opacity="0" RenderTransformOrigin="0.5,0.5">
                 <Ellipse.RenderTransform>
-                    <RotateTransform x:Name="RingTurn" />
+                    <RotateTransform />
                 </Ellipse.RenderTransform>
             </Ellipse>
 
@@ -607,13 +607,13 @@
                     <EllipseGeometry Center="160,160" RadiusX="160" RadiusY="160" />
                 </Grid.Clip>
                 <Rectangle Fill="{DynamicResource OrbBaseBrush}" />
-                <Grid RenderTransformOrigin="0.5,0.5">
+                <Grid x:Name="BoostHost" RenderTransformOrigin="0.5,0.5">
                     <Grid.RenderTransform>
-                        <RotateTransform x:Name="Boost" />
+                        <RotateTransform />
                     </Grid.RenderTransform>
-                <Grid RenderTransformOrigin="0.5,0.5">
+                <Grid x:Name="DriftHost" RenderTransformOrigin="0.5,0.5">
                     <Grid.RenderTransform>
-                        <RotateTransform x:Name="Drift" />
+                        <RotateTransform />
                     </Grid.RenderTransform>
                     <Ellipse Width="300" Height="300" Margin="-90,0,0,-110" HorizontalAlignment="Left" VerticalAlignment="Bottom"
                              Fill="{DynamicResource OrbBlobABrush}" />
@@ -625,9 +625,9 @@
                              Fill="{DynamicResource OrbBlobDBrush}" />
                 </Grid>
                 </Grid>
-                <Grid RenderTransformOrigin="0.5,0.5">
+                <Grid x:Name="CounterHost" RenderTransformOrigin="0.5,0.5">
                     <Grid.RenderTransform>
-                        <RotateTransform x:Name="Counter" />
+                        <RotateTransform />
                     </Grid.RenderTransform>
                     <Ellipse Width="200" Height="200" Margin="0,0,-30,40" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                              Fill="{DynamicResource OrbBlobABrush}" Opacity="0.7" />
@@ -647,17 +647,17 @@
             <EventTrigger RoutedEvent="FrameworkElement.Loaded">
                 <BeginStoryboard>
                     <Storyboard>
-                        <DoubleAnimation Storyboard.TargetName="Drift" Storyboard.TargetProperty="Angle"
+                        <DoubleAnimation Storyboard.TargetName="DriftHost" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                          From="0" To="360" Duration="0:0:26" RepeatBehavior="Forever" />
-                        <DoubleAnimation Storyboard.TargetName="Counter" Storyboard.TargetProperty="Angle"
+                        <DoubleAnimation Storyboard.TargetName="CounterHost" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                          From="360" To="0" Duration="0:0:17" RepeatBehavior="Forever" />
-                        <DoubleAnimation Storyboard.TargetName="Breath" Storyboard.TargetProperty="ScaleX"
+                        <DoubleAnimation Storyboard.TargetName="OrbRoot" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
                                          From="1" To="1.025" Duration="0:0:3" AutoReverse="True" RepeatBehavior="Forever">
                             <DoubleAnimation.EasingFunction>
                                 <SineEase EasingMode="EaseInOut" />
                             </DoubleAnimation.EasingFunction>
                         </DoubleAnimation>
-                        <DoubleAnimation Storyboard.TargetName="Breath" Storyboard.TargetProperty="ScaleY"
+                        <DoubleAnimation Storyboard.TargetName="OrbRoot" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
                                          From="1" To="1.025" Duration="0:0:3" AutoReverse="True" RepeatBehavior="Forever">
                             <DoubleAnimation.EasingFunction>
                                 <SineEase EasingMode="EaseInOut" />
@@ -688,9 +688,9 @@
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetName="Veil" Storyboard.TargetProperty="Opacity" To="0.2" Duration="0:0:0.6" />
                             <DoubleAnimation Storyboard.TargetName="Ring" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.3" />
-                            <DoubleAnimation Storyboard.TargetName="RingTurn" Storyboard.TargetProperty="Angle"
+                            <DoubleAnimation Storyboard.TargetName="Ring" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                              From="0" To="360" Duration="0:0:1.1" RepeatBehavior="Forever" />
-                            <DoubleAnimation Storyboard.TargetName="Boost" Storyboard.TargetProperty="Angle"
+                            <DoubleAnimation Storyboard.TargetName="BoostHost" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                              From="0" To="360" Duration="0:0:2.4" RepeatBehavior="Forever" />
                         </Storyboard>
                     </BeginStoryboard>
@@ -705,7 +705,7 @@
                     <BeginStoryboard x:Name="Leaving">
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetName="Ring" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.3" />
-                            <DoubleAnimation Storyboard.TargetName="RingTurn" Storyboard.TargetProperty="Angle"
+                            <DoubleAnimation Storyboard.TargetName="Ring" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
                                              From="360" To="0" Duration="0:0:1.1" RepeatBehavior="Forever" />
                         </Storyboard>
                     </BeginStoryboard>

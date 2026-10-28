@@ -106,19 +106,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- The brand mark -->
-        <DataTemplate x:Key="LogoMark">
-            <Viewbox>
-                <Canvas Width="32" Height="32">
-                    <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
-                             Stroke="{DynamicResource BrandGradient}" StrokeThickness="3" />
-                    <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
-                             Fill="{DynamicResource BrandGradient}" />
-                    <Line X1="1" Y1="31" X2="31" Y2="1" Stroke="{DynamicResource AccentBrush}"
-                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
-                </Canvas>
-            </Viewbox>
-        </DataTemplate>
 
         <Storyboard x:Key="AuroraDrift">
             <DoubleAnimation Storyboard.TargetName="AuroraA" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
@@ -200,7 +187,16 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <ContentControl ContentTemplate="{StaticResource LogoMark}" Width="30" Height="30" Focusable="False" />
+                    <Viewbox Width="30" Height="30">
+                        <Canvas Width="32" Height="32">
+                            <Ellipse Canvas.Left="5" Canvas.Top="5" Width="22" Height="22"
+                                     Stroke="{DynamicResource BrandGradient}" StrokeThickness="3" />
+                            <Ellipse Canvas.Left="12" Canvas.Top="12" Width="8" Height="8"
+                                     Fill="{DynamicResource BrandGradient}" />
+                            <Line X1="1" Y1="31" X2="31" Y2="1" Stroke="{DynamicResource AccentBrush}"
+                                  StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        </Canvas>
+                    </Viewbox>
                     <TextBlock Text="VOID-RAY" FontFamily="{StaticResource DisplayFont}" FontSize="21" FontWeight="SemiBold"
                                VerticalAlignment="Center" Margin="12,0,0,1" />
                     <Border CornerRadius="10" Background="{DynamicResource SurfaceBrush}" Padding="10,4" Margin="14,0,0,0"
