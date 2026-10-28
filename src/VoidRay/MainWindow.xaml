@@ -235,7 +235,7 @@
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,20,40">
                     <TextBlock Text="{Binding [gateHeadline], Source={x:Static svc:Loc.I}}" FontFamily="{StaticResource DisplayFont}"
-                               FontSize="46" FontWeight="SemiLight" TextWrapping="Wrap" LineHeight="52" />
+                               FontSize="46" FontWeight="Light" TextWrapping="Wrap" LineHeight="52" />
                     <TextBlock Text="{Binding [gateText], Source={x:Static svc:Loc.I}}" FontSize="14"
                                Foreground="{DynamicResource MutedBrush}" TextWrapping="Wrap" LineHeight="21" Margin="0,14,0,26" />
 
@@ -336,7 +336,7 @@
                     </Button>
 
                     <TextBlock Grid.Row="2" Text="{Binding HeroTitle}" FontFamily="{StaticResource DisplayFont}" FontSize="58"
-                               FontWeight="SemiLight" Margin="0,20,0,0" TextTrimming="CharacterEllipsis" />
+                               FontWeight="Light" Margin="0,20,0,0" TextTrimming="CharacterEllipsis" />
 
                     <!-- live line -->
                     <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="2,8,0,0" Height="22">

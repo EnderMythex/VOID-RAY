@@ -60,9 +60,24 @@ public partial class App : Application
         window.Show();
     }
 
+    /// <summary>The message plus its inner causes (and the XAML line, if any), so a report pinpoints the problem.</summary>
+    private static string Describe(Exception ex)
+    {
+        var lines = new List<string>();
+        for (var e = ex; e is not null; e = e.InnerException)
+        {
+            var line = e.Message;
+            if (e is System.Windows.Markup.XamlParseException { LineNumber: > 0 } x)
+                line += $" (XAML {x.LineNumber}:{x.LinePosition})";
+            if (!lines.Contains(line))
+                lines.Add(line);
+        }
+        return string.Join("\n\n", lines);
+    }
+
     private static void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        MessageBox.Show(e.Exception.Message, "VOID-RAY — erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(Describe(e.Exception), "VOID-RAY — erreur", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 
