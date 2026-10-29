@@ -1,104 +1,107 @@
-# VOID-RAY
+<p align="center">
+  <img src="docs/media/hero.png" alt="VOID-RAY sur Windows et Android" width="100%">
+</p>
 
-Client VPN pour Windows (WPF / C# / .NET 8) réservé aux abonnés **EnderrVPN**.
+<h1 align="center">VOID-RAY</h1>
 
-Au lancement, l'app demande le lien d'abonnement : seuls les liens
-`https://sub.enderr.win/ender/…` valides sont acceptés (format vérifié, puis
-l'abonnement est interrogé sur le serveur). Si l'abonnement est supprimé plus tard,
-l'app revient à cet écran.
+<p align="center">
+  <b>Le client VPN des abonnés EnderrVPN — Windows &amp; Android.</b><br>
+  Un lien, un glissement, tu es protégé.
+</p>
 
-L'interface reprend la page d'abonnement EnderrVPN : thème sombre / clair / auto,
-6 couleurs d'accent, français / anglais (ou automatique).
+<p align="center">
+  <a href="https://github.com/EnderMythex/VOID-RAY/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/EnderMythex/VOID-RAY?style=for-the-badge&color=6d86ff&label=t%C3%A9l%C3%A9charger"></a>
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%20%2F%2011-52d6bd?style=for-the-badge&logo=windows&logoColor=white">
+  <img alt="Android" src="https://img.shields.io/badge/Android-8%2B-52d6bd?style=for-the-badge&logo=android&logoColor=white">
+</p>
 
-Une fois connecté, l'app récupère automatiquement :
+---
 
-- le **nom du profil** et le **nom d'utilisateur**
-- le **statut** (actif, expiré, quota atteint…)
-- les **données consommées / le quota** (envoyé, reçu, restant, barre de progression)
-- la **date d'expiration** et les jours restants
-- l'**annonce**, le lien de **support** et le **site web** du fournisseur
-- la **liste des serveurs**, avec un test de ping
+## Présentation
 
-Compatible avec les panels courants : Marzban, Marzneshin, Remnawave, 3x-ui, Hiddify, etc.
-Ces infos viennent de l'en-tête standard `subscription-userinfo`, des en-têtes `profile-title`,
-`support-url`, `announce`, et de l'endpoint `/info` quand il existe.
+<p align="center">
+  <a href="docs/media/voidray.mp4"><img src="docs/media/video-poster.jpg" alt="Voir la vidéo de présentation" width="100%"></a>
+  <br><sub>▶ Clique pour voir la vidéo (24 s)</sub>
+</p>
 
-## Modes de connexion (Windows)
+## Télécharger
 
-- **Tout le PC (TUN)** — par défaut : une carte réseau virtuelle « VOID-RAY » capture tout
-  le trafic (jeux comme Minecraft, launchers, Discord…). Elle est créée par
-  [sing-box](https://github.com/SagerNet/sing-box) (version épinglée, téléchargée au premier
-  usage) qui transmet tout à Xray. Nécessite les droits administrateur : l'app propose de
-  se relancer en administrateur et se connecte directement.
-- **Navigateurs (proxy)** : règle seulement le proxy système de Windows (navigateurs et
-  applis qui le respectent). Pas besoin d'être administrateur.
+| Plateforme | Fichier |
+| --- | --- |
+| **Windows 10 / 11** | [`VoidRay-win-x64.exe`](https://github.com/EnderMythex/VOID-RAY/releases/latest/download/VoidRay-win-x64.exe) — un seul exe, rien à installer |
+| **Android (presque tous les téléphones)** | `VoidRay-android-arm64-v8a.apk` dans la [dernière release](https://github.com/EnderMythex/VOID-RAY/releases/latest) |
+| **Android (tous)** | `VoidRay-android-universal.apk` dans la [dernière release](https://github.com/EnderMythex/VOID-RAY/releases/latest) |
 
-## Zone de notification
+Au premier lancement, colle ton lien d'abonnement `https://sub.enderr.win/ender/…` :
+seuls les liens EnderrVPN valides sont acceptés, et tout le reste se configure seul.
 
-Fermer la fenêtre (✕) ne quitte pas l'app : elle reste dans la zone de notification
-et le VPN continue de tourner. Clic sur l'icône pour la rouvrir ; clic droit pour
-se connecter / déconnecter ou **Quitter**. L'icône porte un point vert quand le
-VPN est actif. Relancer VoidRay.exe rouvre la fenêtre existante.
+## Sur PC
 
-## Firewall Bypass automatique
+<p align="center">
+  <img src="docs/media/desktop.png" alt="VOID-RAY sur Windows, thèmes sombre et clair" width="100%">
+</p>
 
-Quand un serveur nommé « Firewall Bypass » est détecté à l'import, il est reconfiguré
-pour passer par Cloudflare : adresse `172.67.186.245:443`, WebSocket + TLS,
-SNI / Host `xray.enderr.win`, path `/x7k2p` (ou celui de l'abonnement),
-empreinte `chrome`, ALPN `http/1.1`. Les valeurs sont dans
-`src/VoidRay/Services/FirewallBypass.cs`.
+- **Tout le PC passe par le VPN (mode TUN)** : jeux (Minecraft…), launchers, Discord.
+  Une carte réseau virtuelle « VOID-RAY » est créée par
+  [sing-box](https://github.com/SagerNet/sing-box), qui transmet tout à
+  [Xray-core](https://github.com/XTLS/Xray-core). L'app se relance en administrateur
+  quand il le faut et se connecte directement.
+- **Mode navigateurs (proxy)** : ne règle que le proxy système, sans droits administrateur.
+- **Zone de notification** : fermer la fenêtre ne coupe pas le VPN. Clic sur l'icône
+  pour la rouvrir, clic droit pour se connecter / déconnecter ou quitter. Un point vert
+  indique que le VPN est actif.
+- Débit montant / descendant en direct, IP publique, pays et ping réel à travers le tunnel.
+- Journal intégré pour comprendre un souci de connexion.
 
-## Protocoles supportés
+## Sur Android
 
-`VLESS` (REALITY, TLS, Vision), `VMess`, `Trojan` et `Shadowsocks` (y compris 2022),
-avec les transports TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP et mKCP.
-Les abonnements au format JSON Xray sont aussi pris en charge.
+<p align="center">
+  <img src="docs/media/phones.png" alt="VOID-RAY sur Android" width="100%">
+</p>
 
-## Fonctionnement
+- **Glisse pour te connecter** autour du trou noir ; les serveurs et l'abonnement
+  s'ouvrent dans des panneaux qui glissent.
+- **Débit en direct dans la notification** (↑ / ↓ par seconde et total de la session),
+  avec un bouton pour se déconnecter.
+- **Tuile « Réglages rapides »** pour connecter ou déconnecter sans ouvrir l'app.
+- Le VPN utilise le `VpnService` d'Android et Xray-core (`libv2ray.aar`) avec son entrée TUN.
 
-VOID-RAY pilote [Xray-core](https://github.com/XTLS/Xray-core) :
+## Sur les deux
 
-1. Au premier clic sur **Connexion**, `xray.exe` est téléchargé automatiquement dans
-   `%AppData%\VoidRay\core` (tu peux aussi le placer à côté de `VoidRay.exe` ou dans un dossier `core\`).
-2. Une configuration est générée pour le serveur choisi, puis Xray démarre en local
-   (HTTP `127.0.0.1:10809`, SOCKS5 `127.0.0.1:10808`).
-3. Le **proxy système Windows** est activé : navigateurs et la plupart des applis passent par le VPN.
-4. L'IP publique, le pays et la latence réelle sont vérifiés à travers le tunnel.
+- **Infos d'abonnement automatiques** : profil, nom d'utilisateur, statut, données
+  consommées / quota, date d'expiration, annonce, liens de support et du site.
+- **Liste des serveurs** avec test de ping.
+- **Firewall Bypass automatique** : le serveur « Firewall Bypass » est reconfiguré pour
+  passer par Cloudflare (`172.67.186.245:443`, WebSocket + TLS, SNI / Host
+  `xray.enderr.win`, path `/x7k2p` ou celui de l'abonnement, empreinte `chrome`,
+  ALPN `http/1.1`).
+- **Thème sombre / clair / auto**, **6 couleurs d'accent**, français / anglais.
+- **Mises à jour intégrées** : le bouton *Vérifier les mises à jour* lit la dernière
+  release GitHub et l'installe (le PC remplace son exe et redémarre, Android ouvre
+  l'installateur).
 
-À la déconnexion ou à la fermeture, les réglages proxy d'origine sont restaurés,
-même après un plantage (au prochain lancement).
+Protocoles : `VLESS` (REALITY, TLS, Vision), `VMess`, `Trojan`, `Shadowsocks` (y compris
+2022), avec les transports TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP et mKCP. Les
+abonnements au format JSON Xray sont aussi pris en charge.
 
 ## Compiler
 
-Prérequis : Windows 10/11 et le [SDK .NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)
-(ou Visual Studio 2022 avec la charge de travail « Développement .NET Desktop »).
+### Windows (Rust + Tauri v2)
+
+Prérequis : Windows 10/11, [Rust](https://rustup.rs) et Node.js (pour la CLI Tauri).
 
 ```powershell
-dotnet run --project src/VoidRay
+cd desktop
+npx @tauri-apps/cli@2 build --no-bundle
 ```
 
-Pour un exécutable unique à distribuer :
+L'exécutable se trouve dans `desktop\src-tauri\target\release\VoidRay.exe`.
+`xray.exe` et `sing-box.exe` (versions épinglées) sont téléchargés au premier usage dans
+`%AppData%\VoidRay\core`. Les réglages sont dans `%AppData%\VoidRay\settings.json`.
 
-```powershell
-dotnet publish src/VoidRay -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o publish
-```
+### Android (Kotlin + Jetpack Compose)
 
-L'exécutable se trouve ensuite dans `publish\VoidRay.exe`.
-
-## Android (APK)
-
-Le dossier `android/` contient la version Android (Kotlin + Jetpack Compose), avec les
-mêmes fonctions : écran de lien `sub.enderr.win`, tableau de bord, thèmes, couleurs,
-FR/EN et Firewall Bypass automatique. Le VPN utilise le `VpnService` d'Android et
-Xray-core (`libv2ray.aar` de AndroidLibXrayLite) avec son entrée TUN. Une notification
-permet de se déconnecter, et une tuile « Réglages rapides » connecte ou déconnecte sans
-ouvrir l'app.
-
-Les APK sont produits par GitHub Actions (workflow **Android**, artefact
-`VoidRay-android`) : `app-arm64-v8a-release.apk` convient à presque tous les
-téléphones récents, `app-universal-release.apk` à tous.
-
-Build local (Android SDK + JDK 17) :
+Prérequis : Android SDK et JDK 17.
 
 ```bash
 curl -L -o android/app/libs/libv2ray.aar \
@@ -106,42 +109,29 @@ curl -L -o android/app/libs/libv2ray.aar \
 cd android && ./gradlew assembleRelease
 ```
 
-## Extension Chrome
+## Publier une version
 
-Le dossier `extension/` contient l'extension Chrome (Manifest V3) : même style, même
-écran de lien, et un proxy HTTPS pour **les pages web uniquement**. Voir
-`extension/README.md` pour la mise en place côté 3x-ui et la publication sur le
-Chrome Web Store (le workflow **Extension** produit le zip à envoyer).
-
-## Mises à jour et releases
-
-Les apps PC et Android ont un bouton **Vérifier les mises à jour** (en bas) qui lit la
-dernière release GitHub, télécharge le bon fichier et l'installe (le PC remplace son exe
-et redémarre ; Android ouvre l'installateur). Le repo doit être **public** pour que les
-utilisateurs puissent télécharger les releases.
-
-Publier une nouvelle version :
 1. Mettre à jour `.github/release-notes.md` (texte affiché dans la release et dans l'app).
-2. **Actions → Release → Run workflow** et entrer la version (ex. `1.2.0`),
-   ou pousser un tag `v1.2.0`.
+2. **Actions → Release → Run workflow** et entrer la version (ex. `1.4.0`), ou pousser
+   un tag `v1.4.0`.
 
-Le workflow construit `VoidRay-win-x64.exe`, les APK `VoidRay-android-*.apk` et
-`voidray-extension.zip`, puis crée la release. La version doit être plus grande que la
-précédente (Android refuse d'installer une version plus ancienne).
+Le workflow construit `VoidRay-win-x64.exe` et les APK `VoidRay-android-*.apk`, puis
+crée la release. La version doit être plus grande que la précédente (Android refuse
+d'installer une version plus ancienne). Le repo doit être public pour que les
+utilisateurs puissent télécharger les mises à jour.
 
 ## Structure
 
 ```
-src/VoidRay/
-├── Models/        ServerProfile, SubscriptionInfo, AppSettings
-├── Services/      SubscriptionService (récupération + infos), LinkParser (vless/vmess/trojan/ss),
-│                  XrayConfigBuilder, XrayCore (processus), SystemProxy (registre), NetTools (ping, IP),
-│                  Brand (lien sub.enderr.win), FirewallBypass, ThemeManager, Loc (FR/EN), UsageHistory
-├── ViewModels/    MainViewModel (MVVM), ServerItemViewModel
-├── Controls/      TickGauge (jauge), UsageBars (conso par jour), Icon
-├── Themes/        Theme.xaml (styles) — couleurs appliquées par ThemeManager
-└── MainWindow.xaml
+desktop/                 App Windows (Rust + Tauri v2)
+├── src-tauri/src/       app (commandes), subscription, links (vless/vmess/trojan/ss),
+│                        config (Xray / sing-box, Firewall Bypass), cores (processus),
+│                        system (proxy, élévation), tray, net (ping, IP, mises à jour)
+└── ui/                  index.html, style.css, app.js, i18n.js
+android/                 App Android (Kotlin + Compose)
+└── app/src/main/java/win/enderr/voidray/
+    ├── core/            LinkParser, SubscriptionFetcher, XrayConfig, FirewallBypass
+    ├── ui/              Home (trou noir, glisser pour se connecter), Screens, Theme
+    └── vpn/             VoidRayVpnService, tuile Réglages rapides
+src/VoidRay/             Ancienne app Windows (WPF / .NET 8), remplacée par desktop/
 ```
-
-Les paramètres (lien, serveur choisi, dernier abonnement en cache) sont enregistrés dans
-`%AppData%\VoidRay\settings.json`.

@@ -101,25 +101,8 @@ jobs:
           name: android
           path: out/*
 
-  extension:
-    needs: cleanup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Package
-        run: |
-          version="${VERSION#v}"
-          cd extension
-          node -e "const f='manifest.json',m=JSON.parse(require('fs').readFileSync(f));m.version='$version';require('fs').writeFileSync(f,JSON.stringify(m,null,2))"
-          mkdir -p ../out
-          zip -r ../out/voidray-extension.zip manifest.json popup.html popup.css src icons _locales
-      - uses: actions/upload-artifact@v4
-        with:
-          name: extension
-          path: out/*
-
   release:
-    needs: [windows, android, extension]
+    needs: [windows, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

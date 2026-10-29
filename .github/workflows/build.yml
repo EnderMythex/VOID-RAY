@@ -2,9 +2,9 @@ name: Build
 
 on:
   push:
-    paths-ignore: ["android/**", "extension/**", ".github/workflows/android.yml", ".github/workflows/extension.yml"]
+    paths-ignore: ["android/**", "desktop/**", ".github/workflows/android.yml", ".github/workflows/desktop.yml"]
   pull_request:
-    paths-ignore: ["android/**", "extension/**", ".github/workflows/android.yml", ".github/workflows/extension.yml"]
+    paths-ignore: ["android/**", "desktop/**", ".github/workflows/android.yml", ".github/workflows/desktop.yml"]
   workflow_dispatch:
 
 jobs:

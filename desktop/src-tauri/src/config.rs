@@ -78,7 +78,7 @@ pub fn xray_config(p: &ServerProfile, socks_port: u16, http_port: u16) -> Result
         }
     };
 
-    root.insert("log".into(), json!({"loglevel": "warning"}));
+    root.insert("log".into(), json!({"loglevel": "warning", "access": "none"}));
     root.insert(
         "inbounds".into(),
         json!([
