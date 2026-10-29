@@ -1,9 +1,15 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
     android:viewportWidth="32" android:viewportHeight="32">
-    <path android:pathData="M16,5 A11,11 0 1,1 15.99,5 Z" android:strokeWidth="3"
-        android:strokeColor="#FFFFFFFF" android:fillColor="#00000000" />
-    <path android:pathData="M16,12 A4,4 0 1,1 15.99,12 Z" android:fillColor="#FFFFFFFF" />
-    <path android:pathData="M1,31 L31,1" android:strokeWidth="2"
+    <!-- the ray -->
+    <path android:pathData="M3,29 L29,3" android:strokeWidth="1.6"
         android:strokeColor="#FFFFFFFF" android:strokeLineCap="round" />
+    <group android:rotation="-14" android:pivotX="16" android:pivotY="16">
+        <!-- lensed ring around the event horizon -->
+        <path android:pathData="M16,8.2 A7.8,7.8 0 1,1 15.99,8.2 Z" android:strokeWidth="2.6"
+            android:strokeColor="#FFFFFFFF" android:fillColor="#00000000" />
+        <!-- accretion disk -->
+        <path android:pathData="M1.5,16 A14.5,3.4 0 1,0 30.5,16 A14.5,3.4 0 1,0 1.5,16 Z" android:strokeWidth="1.8"
+            android:strokeColor="#FFFFFFFF" android:fillColor="#00000000" />
+    </group>
 </vector>

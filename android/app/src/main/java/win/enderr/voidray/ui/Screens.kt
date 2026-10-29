@@ -123,14 +123,11 @@ private fun Header(vm: MainViewModel, openAccount: () -> Unit) {
 
 @Composable
 fun Logo(modifier: Modifier = Modifier) {
-    val p = LocalPalette.current
-    androidx.compose.foundation.Canvas(modifier) {
-        val s = size.width / 32f
-        val grad = Brush.linearGradient(listOf(p.accent2, p.accent), Offset(5 * s, 5 * s), Offset(27 * s, 27 * s))
-        drawCircle(grad, 11 * s, Offset(16 * s, 16 * s), style = androidx.compose.ui.graphics.drawscope.Stroke(3 * s))
-        drawCircle(grad, 4 * s, Offset(16 * s, 16 * s))
-        drawLine(p.accent, Offset(1 * s, 31 * s), Offset(31 * s, 1 * s), strokeWidth = 2 * s, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-    }
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(win.enderr.voidray.R.drawable.voidray_mark),
+        contentDescription = null,
+        modifier = modifier,
+    )
 }
 
 // ==================================================================== home

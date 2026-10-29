@@ -9,6 +9,7 @@
 
 ## Nouveautés
 
-- Android : nouvel écran d'accueil — sphère animée, choix du serveur, **glisser pour se connecter** et bouton réglages.
-- Android : serveurs, abonnement et réglages s'ouvrent en panneaux depuis le bas, qu'on ferme en les **faisant glisser vers le bas**.
-- Android : réglages regroupés (thème, couleur, langue, lien d'abonnement, mises à jour).
+- **Windows : nouvelle application en Rust** (Tauri) — plus légère (quelques Mo), plus rapide, nouveau design : trou noir animé, glisser pour se connecter, panneau Aperçu / Serveurs / Abonnement, réglages en panneau latéral. Tes réglages et ton lien sont repris automatiquement.
+- **Nouveau logo** VOID-RAY (trou noir et son rayon) sur Windows, Android et l'extension.
+- **Trou noir animé** à la place de la sphère, aux couleurs d'accent choisies (Windows et Android).
+- Android : la notification affiche le **débit d'envoi et de réception** en direct, et le total de la session.

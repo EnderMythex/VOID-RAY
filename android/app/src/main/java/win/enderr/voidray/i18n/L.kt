@@ -163,6 +163,7 @@ object L {
         "notifChannel" to ("VPN status" to "État du VPN"),
         "notifTitle" to ("VOID-RAY · Protected" to "VOID-RAY · Protégé"),
         "notifDisconnect" to ("Disconnect" to "Se déconnecter"),
+        "notifTotals" to ("This session: ↑ %s · ↓ %s" to "Cette session : ↑ %s · ↓ %s"),
         "tileLabel" to ("VOID-RAY" to "VOID-RAY"),
     )
 }

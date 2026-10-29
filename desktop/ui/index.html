@@ -14,7 +14,7 @@
   <!-- ===================================================== title bar -->
   <header class="titlebar" data-tauri-drag-region>
     <div class="brand" data-tauri-drag-region>
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><use href="#logo"/></svg>
+      <img class="logo" src="logo.svg" alt="" draggable="false">
       <span class="wordmark" data-tauri-drag-region>VOID-RAY</span>
       <span class="identity" id="identity" data-tauri-drag-region>by EnderrVPN</span>
     </div>
@@ -30,7 +30,7 @@
 
   <!-- ===================================================== gate -->
   <main class="gate" id="gate" hidden>
-    <div class="gate-visual"><div class="orb" data-state="disconnected"><div class="halo"></div><div class="sphere"><i></i><i></i><i></i><i></i><b class="veil"></b><b class="gloss"></b></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
+    <div class="gate-visual"><div class="orb" data-state="disconnected"><div class="halo"></div><div class="ray"></div><div class="disk back"><i></i></div><div class="lens"></div><div class="hole"></div><div class="disk front"><i></i></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
     <section class="gate-form">
       <h1 class="headline" data-i18n="gateHeadline"></h1>
       <p class="lede" data-i18n="gateText"></p>
@@ -50,7 +50,7 @@
   <!-- ===================================================== home -->
   <main class="home" id="home" hidden>
     <section class="hero">
-      <div class="hero-visual"><div class="orb" id="orb" data-state="disconnected"><div class="halo"></div><div class="sphere"><i></i><i></i><i></i><i></i><b class="veil"></b><b class="gloss"></b></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
+      <div class="hero-visual"><div class="orb" id="orb" data-state="disconnected"><div class="halo"></div><div class="ray"></div><div class="disk back"><i></i></div><div class="lens"></div><div class="hole"></div><div class="disk front"><i></i></div><svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48"/></svg></div></div>
 
       <div class="hero-copy">
         <button class="server-chip" id="server-chip">

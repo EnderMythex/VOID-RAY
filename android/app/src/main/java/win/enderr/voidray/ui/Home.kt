@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -94,66 +95,112 @@ val Palette.solid: Color get() = if (isLight) Color(0xFF0B0D12) else Color(0xFFF
 val Palette.onSolid: Color get() = if (isLight) Color.White else Color(0xFF0B0D12)
 
 /**
- * The orb: a soft colour field that drifts slowly. Pale while idle, it spins up
- * while connecting and turns vivid with a halo once protected.
+ * The black hole: an event horizon wrapped in bent light, a tilted accretion
+ * disk (half behind, half in front) and the ray crossing it. Dim while idle,
+ * it spins up while connecting and blazes with a halo once protected.
  */
 @Composable
 fun Orb(status: VpnStatus, modifier: Modifier = Modifier) {
     val p = LocalPalette.current
     val connected = status == VpnStatus.Connected
     val busy = status == VpnStatus.Connecting || status == VpnStatus.Disconnecting
-    val vivid by animateFloatAsState(if (connected) 1f else if (busy) .7f else 0f, tween(900), label = "vivid")
-    val t = rememberInfiniteTransition(label = "orb")
-    val slow by t.animateFloat(0f, 360f, infiniteRepeatable(tween(18000, easing = LinearEasing)), label = "slow")
-    val fast by t.animateFloat(0f, 360f, infiniteRepeatable(tween(2600, easing = LinearEasing)), label = "fast")
-    val breathe by t.animateFloat(0f, 1f, infiniteRepeatable(tween(2400), RepeatMode.Reverse), label = "breathe")
-    val spin = if (busy) fast else slow
+    val vivid by animateFloatAsState(if (connected) 1f else if (busy) .75f else 0f, tween(1000), label = "vivid")
+    val t = rememberInfiniteTransition(label = "hole")
+    val slow by t.animateFloat(0f, 360f, infiniteRepeatable(tween(26000, easing = LinearEasing)), label = "slow")
+    val mid by t.animateFloat(0f, 360f, infiniteRepeatable(tween(11000, easing = LinearEasing)), label = "mid")
+    val fast by t.animateFloat(0f, 360f, infiniteRepeatable(tween(2400, easing = LinearEasing)), label = "fast")
+    val ringSpin by t.animateFloat(0f, 360f, infiniteRepeatable(tween(1100, easing = LinearEasing)), label = "ring")
+    val breathe by t.animateFloat(0f, 1f, infiniteRepeatable(tween(3500), RepeatMode.Reverse), label = "breathe")
+    val spin = if (busy) fast else if (connected) mid else slow
 
     val warm = Color(0xFFFFAE6B)
-    val grey = if (p.isLight) Color(0xFFD9DAE2) else Color(0xFF2A2F3C)
-    fun tone(c: Color) = lerp(lerp(c, grey, .42f), c, vivid)
-    val blobs = listOf(
-        Triple(tone(warm), 200f, .55f),
-        Triple(tone(p.accent2), 20f, .6f),
-        Triple(tone(p.accent), 110f, .5f),
-        Triple(tone(lerp(warm, Color(0xFFFFC6E6), .6f)), 300f, .42f),
-    )
-    val scale = 1f + (.02f + .03f * vivid) * breathe
+    val grey = if (p.isLight) Color(0xFF9EA2B4) else Color(0xFF5A6070)
+    fun tone(c: Color) = lerp(lerp(c, grey, .55f), c, vivid)
+    val accent = tone(p.accent)
+    val accent2 = tone(p.accent2)
+    val hot = tone(Color(0xFFF4FFFC))
+    val ember = tone(warm)
+    val scale = 1f + .02f * breathe
 
     Canvas(modifier.graphicsLayer { scaleX = scale; scaleY = scale }) {
-        val r = size.minDimension / 2f * .78f
         val c = Offset(size.width / 2f, size.height / 2f)
-        if (vivid > 0f) {
-            drawCircle(
-                Brush.radialGradient(listOf(p.accent.copy(alpha = .30f * vivid), Color.Transparent), c, r * 1.28f),
-                r * 1.28f, c,
+        val r = size.minDimension / 2f
+        val hole = r * .40f
+
+        // halo
+        drawCircle(
+            Brush.radialGradient(
+                listOf(accent2.copy(alpha = .22f + .28f * vivid), accent.copy(alpha = .10f + .12f * vivid), Color.Transparent),
+                c, r * 1.05f,
+            ),
+            r * 1.05f, c,
+        )
+
+        // the ray, behind
+        rotate(-45f, c) {
+            val len = r * 1.25f
+            val beam = Brush.horizontalGradient(
+                listOf(Color.Transparent, accent, hot, accent2, Color.Transparent), c.x - len, c.x + len,
             )
+            drawLine(beam, Offset(c.x - len, c.y), Offset(c.x + len, c.y), strokeWidth = 9.dp.toPx(), alpha = .18f + .2f * vivid, cap = StrokeCap.Round)
+            drawLine(beam, Offset(c.x - len, c.y), Offset(c.x + len, c.y), strokeWidth = 2.2.dp.toPx(), alpha = .55f + .45f * vivid, cap = StrokeCap.Round)
         }
-        val clip = Path().apply { addOval(Rect(c, r)) }
-        clipPath(clip) {
-            drawRect(tone(lerp(p.accent2, Color.White, .55f)))
-            blobs.forEachIndexed { i, (color, offset, reach) ->
-                val a = Math.toRadians((spin * (if (i % 2 == 0) 1f else -0.7f) + offset).toDouble())
-                val bc = Offset(c.x + cos(a).toFloat() * r * .55f, c.y + sin(a).toFloat() * r * .55f)
-                val rad = r * (reach + .55f)
-                drawCircle(Brush.radialGradient(listOf(color, color.copy(alpha = 0f)), bc, rad), rad, bc)
+
+        // The disk's colours flow around it; its shape stays put.
+        val disk = turningSweep(listOf(accent, hot, accent2, accent2.copy(alpha = .3f), ember, accent), spin / 360f, c)
+        val diskW = r * .92f
+        val diskH = r * .30f
+        fun drawDisk(front: Boolean) {
+            rotate(-14f, c) {
+                clipRect(top = if (front) c.y else 0f, bottom = if (front) size.height else c.y) {
+                    val tl = Offset(c.x - diskW, c.y - diskH)
+                    val sz = Size(diskW * 2, diskH * 2)
+                    drawOval(disk, tl, sz, style = Stroke(r * .16f), alpha = (if (front) .28f else .18f) * (.6f + .4f * vivid))
+                    drawOval(disk, tl, sz, style = Stroke(r * .07f), alpha = if (front) 1f else .75f)
+                }
             }
-            // soft light from the top
-            drawCircle(
-                Brush.radialGradient(listOf(Color.White.copy(alpha = .35f), Color.Transparent), Offset(c.x, c.y - r * .6f), r),
-                r, Offset(c.x, c.y - r * .6f),
-            )
         }
+
+        // far half of the disk
+        drawDisk(front = false)
+
+        // bent light around the horizon
+        rotate(-spin * 1.4f, c) {
+            val lens = Brush.sweepGradient(listOf(hot, accent2, accent, ember, accent2, hot), c)
+            drawCircle(lens, hole * 1.22f, c, style = Stroke(hole * .42f), alpha = .25f + .2f * vivid)
+            drawCircle(lens, hole * 1.14f, c, style = Stroke(hole * .16f))
+        }
+
+        // event horizon
+        drawCircle(Brush.radialGradient(listOf(Color(0xFF0B0D16), Color.Black), Offset(c.x - hole * .1f, c.y - hole * .15f), hole), hole, c)
+        drawCircle(lerp(hot, accent2, .4f), hole, c, style = Stroke(1.5.dp.toPx()), alpha = .8f)
+
+        // near half, in front of the hole
+        drawDisk(front = true)
+
         if (busy) {
-            rotate(fast, c) {
+            rotate(ringSpin, c) {
                 drawArc(
-                    p.accent.copy(alpha = .9f), -90f, 70f, useCenter = false,
-                    topLeft = Offset(c.x - r * 1.1f, c.y - r * 1.1f), size = Size(r * 2.2f, r * 2.2f),
-                    style = Stroke(3.dp.toPx(), cap = StrokeCap.Round),
+                    p.accent, -90f, 50f, useCenter = false,
+                    topLeft = Offset(c.x - r * .98f, c.y - r * .98f), size = Size(r * 1.96f, r * 1.96f),
+                    style = Stroke(2.5.dp.toPx(), cap = StrokeCap.Round),
                 )
             }
         }
     }
+}
+
+/** A sweep gradient whose colours are turned by `turn` (0..1) around `center`. */
+private fun turningSweep(loop: List<Color>, turn: Float, center: Offset): Brush {
+    val n = loop.size - 1
+    fun at(x: Float): Color {
+        val f = (((x % 1f) + 1f) % 1f) * n
+        val i = f.toInt().coerceAtMost(n - 1)
+        return lerp(loop[i], loop[i + 1], f - i)
+    }
+    val steps = 24
+    val stops = Array(steps + 1) { k -> (k.toFloat() / steps) to at(k.toFloat() / steps - turn) }
+    return Brush.sweepGradient(*stops, center = center)
 }
 
 /**

@@ -50,7 +50,7 @@ main { display: flex; flex-direction: column; gap: 8px; }
 
 /* ---- top bar */
 .topbar { display: flex; align-items: center; gap: 6px; padding: 0 2px 8px; position: relative; }
-.logo { width: 26px; height: 26px; flex: none; margin-right: 4px; }
+.logo { width: 30px; height: 30px; flex: none; margin: 0 2px 0 -2px; }
 .identity { flex: 1; min-width: 0; }
 .identity h1 { margin: 0; font-size: 15px; font-weight: 640; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .identity b { display: block; font: 500 11px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

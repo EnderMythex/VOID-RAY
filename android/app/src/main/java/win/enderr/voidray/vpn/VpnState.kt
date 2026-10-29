@@ -11,4 +11,7 @@ object VpnState {
     val error = MutableStateFlow<String?>(null)
     val serverName = MutableStateFlow<String?>(null)
     @Volatile var connectedAt: Long = 0L
+    /** Bytes sent / received through the tunnel since it came up. */
+    val upload = MutableStateFlow(0L)
+    val download = MutableStateFlow(0L)
 }

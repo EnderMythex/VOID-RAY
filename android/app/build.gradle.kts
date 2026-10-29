@@ -13,7 +13,7 @@ android {
         minSdk = 26
         targetSdk = 35
         // Release builds pass VERSION_NAME (from the git tag); the code grows with it.
-        val version = System.getenv("VERSION_NAME") ?: "1.2.0"
+        val version = System.getenv("VERSION_NAME") ?: "1.3.0"
         val parts = version.split('.').map { it.toIntOrNull() ?: 0 } + listOf(0, 0, 0)
         versionName = version
         versionCode = parts[0] * 10000 + parts[1] * 100 + parts[2]

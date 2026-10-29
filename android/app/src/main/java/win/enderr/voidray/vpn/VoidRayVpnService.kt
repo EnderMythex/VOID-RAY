@@ -8,11 +8,16 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
+import android.net.TrafficStats
 import android.os.Build
+import android.os.Process
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -22,6 +27,7 @@ import libv2ray.CoreController
 import libv2ray.Libv2ray
 import win.enderr.voidray.MainActivity
 import win.enderr.voidray.R
+import win.enderr.voidray.core.Format
 import win.enderr.voidray.i18n.L
 import java.io.File
 
@@ -58,6 +64,8 @@ class VoidRayVpnService : VpnService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var tun: ParcelFileDescriptor? = null
     private var controller: CoreController? = null
+    private var traffic: Job? = null
+    private var currentServer: String? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -106,6 +114,7 @@ class VoidRayVpnService : VpnService() {
 
             VpnState.connectedAt = System.currentTimeMillis()
             VpnState.status.value = VpnStatus.Connected
+            startTrafficUpdates()
         } catch (e: Throwable) {
             Log.e(TAG, "start failed", e)
             VpnState.error.value = e.message ?: e.javaClass.simpleName
@@ -114,6 +123,8 @@ class VoidRayVpnService : VpnService() {
     }
 
     private fun stopCore() {
+        traffic?.cancel()
+        traffic = null
         try {
             controller?.stopLoop()
         } catch (e: Throwable) {
@@ -151,7 +162,7 @@ class VoidRayVpnService : VpnService() {
 
     // ------------------------------------------------------------ notification
 
-    private fun goForeground(serverName: String?) {
+    private fun ensureChannel() {
         val nm = getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
             nm.createNotificationChannel(
@@ -160,6 +171,10 @@ class VoidRayVpnService : VpnService() {
                 },
             )
         }
+    }
+
+    /** The VPN notification; `speed` / `totals` show the live upload and download once connected. */
+    private fun buildNotification(serverName: String?, speed: String? = null, totals: String? = null): Notification {
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
@@ -168,22 +183,68 @@ class VoidRayVpnService : VpnService() {
             this, 1, Intent(this, VoidRayVpnService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val notification = Notification.Builder(this, CHANNEL_ID)
+        val since = VpnState.connectedAt.takeIf { it > 0 } ?: System.currentTimeMillis()
+        val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_voidray)
             .setContentTitle(L.t("notifTitle"))
-            .setContentText(serverName ?: "")
+            .setContentText(speed ?: serverName ?: "")
+            .setSubText(serverName.takeIf { speed != null })
             .setContentIntent(open)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .setShowWhen(true)
-            .setWhen(System.currentTimeMillis())
+            .setWhen(since)
             .setUsesChronometer(true)
             .addAction(Notification.Action.Builder(null, L.t("notifDisconnect"), stop).build())
-            .build()
+        if (speed != null && totals != null) {
+            builder.setStyle(Notification.BigTextStyle().bigText("$speed\n$totals"))
+        }
+        return builder.build()
+    }
 
+    private fun goForeground(serverName: String?) {
+        ensureChannel()
+        currentServer = serverName
+        val notification = buildNotification(serverName)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    /**
+     * Xray runs inside this app, which is excluded from the VPN: everything the
+     * app's uid sends and receives is the tunnel's traffic. Sampled every second.
+     */
+    private fun startTrafficUpdates() {
+        traffic?.cancel()
+        val uid = Process.myUid()
+        val upStart = TrafficStats.getUidTxBytes(uid)
+        val downStart = TrafficStats.getUidRxBytes(uid)
+        if (upStart < 0 || downStart < 0) return // not supported on this device
+        VpnState.upload.value = 0
+        VpnState.download.value = 0
+        val nm = getSystemService(NotificationManager::class.java)
+        traffic = scope.launch {
+            var lastUp = upStart
+            var lastDown = downStart
+            var lastAt = System.currentTimeMillis()
+            while (isActive && VpnState.status.value == VpnStatus.Connected) {
+                delay(1000)
+                val up = TrafficStats.getUidTxBytes(uid)
+                val down = TrafficStats.getUidRxBytes(uid)
+                val now = System.currentTimeMillis()
+                val secs = ((now - lastAt).coerceAtLeast(1)) / 1000.0
+                val upRate = ((up - lastUp).coerceAtLeast(0) / secs).toLong()
+                val downRate = ((down - lastDown).coerceAtLeast(0) / secs).toLong()
+                lastUp = up; lastDown = down; lastAt = now
+                VpnState.upload.value = (up - upStart).coerceAtLeast(0)
+                VpnState.download.value = (down - downStart).coerceAtLeast(0)
+                val speed = "↑ ${Format.bytes(upRate)}/s   ↓ ${Format.bytes(downRate)}/s"
+                val totals = L.t("notifTotals", Format.bytes(VpnState.upload.value), Format.bytes(VpnState.download.value))
+                nm.notify(NOTIFICATION_ID, buildNotification(currentServer, speed, totals))
+            }
         }
     }
 }
