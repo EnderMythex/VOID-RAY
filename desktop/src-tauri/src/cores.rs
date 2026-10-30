@@ -87,16 +87,26 @@ impl CoreProcess {
     pub fn stop(&self) {
         self.stopping.store(true, Ordering::SeqCst);
         if let Some(mut child) = self.child.lock().unwrap().take() {
-            let _ = child.kill();
-            let deadline = Instant::now() + Duration::from_secs(3);
-            while Instant::now() < deadline {
-                if let Ok(Some(_)) = child.try_wait() {
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(50));
+            // sing-box must shut down cleanly or Windows keeps its routes and
+            // firewall rules and the PC stays offline: ask first, kill if it hangs.
+            if self.name == "sing-box" && crate::system::interrupt_process(child.id()) && wait_exit(&mut child, Duration::from_secs(4)) {
+                return;
             }
+            let _ = child.kill();
+            wait_exit(&mut child, Duration::from_secs(3));
         }
     }
+}
+
+fn wait_exit(child: &mut Child, timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        if let Ok(Some(_)) = child.try_wait() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    false
 }
 
 // ------------------------------------------------------------------ install

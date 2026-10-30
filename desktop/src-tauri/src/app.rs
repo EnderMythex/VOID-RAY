@@ -653,8 +653,9 @@ impl Core {
 
     fn stop_all(&self) {
         self.tun.stop();
-        system::restore_proxy();
         self.xray.stop();
+        // After Xray is gone, so a leftover local proxy is seen as dead and cleared.
+        system::restore_proxy();
     }
 
     pub async fn disconnect(self: &Arc<Self>) {

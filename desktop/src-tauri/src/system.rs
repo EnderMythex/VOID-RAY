@@ -64,28 +64,60 @@ mod win {
         Ok(())
     }
 
-    /// Puts back the settings saved by `enable_proxy`. Safe to call repeatedly.
+    /// Puts back the settings saved by `enable_proxy`, then makes sure Windows is
+    /// never left pointing at a local proxy nobody answers on (a crash, a backup
+    /// taken from an older version…), which would cut the internet. Safe to call
+    /// repeatedly; call it once the cores are stopped.
     pub fn restore_proxy() {
-        let path = proxy_backup_path();
-        let Ok(text) = fs::read_to_string(&path) else { return };
-        let snap: ProxySnapshot = serde_json::from_str(&text).unwrap_or_default();
         let Ok(key) = RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(KEY, KEY_READ | KEY_WRITE) else {
             return;
         };
-        let _ = key.set_value("ProxyEnable", &snap.proxy_enable);
-        let set = |name: &str, value: &Option<String>| match value {
-            Some(v) => {
-                let _ = key.set_value(name, v);
-            }
-            None => {
-                let _ = key.delete_value(name);
-            }
-        };
-        set("ProxyServer", &snap.proxy_server);
-        set("ProxyOverride", &snap.proxy_override);
-        set("AutoConfigURL", &snap.auto_config_url);
-        let _ = fs::remove_file(&path);
+        let path = proxy_backup_path();
+        if let Ok(text) = fs::read_to_string(&path) {
+            let snap: ProxySnapshot = serde_json::from_str(&text).unwrap_or_default();
+            let _ = key.set_value("ProxyEnable", &snap.proxy_enable);
+            let set = |name: &str, value: &Option<String>| match value {
+                Some(v) => {
+                    let _ = key.set_value(name, v);
+                }
+                None => {
+                    let _ = key.delete_value(name);
+                }
+            };
+            set("ProxyServer", &snap.proxy_server);
+            set("ProxyOverride", &snap.proxy_override);
+            set("AutoConfigURL", &snap.auto_config_url);
+            let _ = fs::remove_file(&path);
+        }
+        let enabled: u32 = key.get_value("ProxyEnable").unwrap_or(0);
+        let server: String = key.get_value("ProxyServer").unwrap_or_default();
+        if enabled != 0 && super::is_dead_local_proxy(&server) {
+            let _ = key.set_value("ProxyEnable", &0u32);
+        }
         refresh();
+    }
+
+    /// Sends Ctrl+C to a console process started with `hidden_command`, so it can
+    /// clean up (sing-box removes its routes and firewall rules) before exiting.
+    pub fn interrupt_process(pid: u32) -> bool {
+        use std::sync::Mutex;
+        use windows::Win32::System::Console::{AttachConsole, FreeConsole, GenerateConsoleCtrlEvent, SetConsoleCtrlHandler, CTRL_C_EVENT};
+        // Attaching to a console is process-wide: one at a time.
+        static LOCK: Mutex<()> = Mutex::new(());
+        let _guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        unsafe {
+            let _ = FreeConsole();
+            if AttachConsole(pid).is_err() {
+                return false;
+            }
+            // Ignore the event ourselves while it reaches everything on that console.
+            let _ = SetConsoleCtrlHandler(None, true);
+            let sent = GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0).is_ok();
+            let _ = FreeConsole();
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            let _ = SetConsoleCtrlHandler(None, false);
+            sent
+        }
     }
 
     pub fn is_admin() -> bool {
@@ -184,12 +216,40 @@ mod win {
 #[cfg(windows)]
 pub use win::*;
 
+/// True when every entry of a Windows proxy setting ("127.0.0.1:10809" or
+/// "http=127.0.0.1:10809;https=…") is a loopback address with nothing listening.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn is_dead_local_proxy(server: &str) -> bool {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+    let entries: Vec<&str> = server.split(';').map(str::trim).filter(|e| !e.is_empty()).collect();
+    !entries.is_empty()
+        && entries.iter().all(|entry| {
+            let addr = entry.rsplit('=').next().unwrap_or(entry);
+            let addr = addr.trim_start_matches("http://");
+            let Some((host, port)) = addr.rsplit_once(':') else { return false };
+            let Ok(port) = port.parse::<u16>() else { return false };
+            let ip = match host.trim_matches(['[', ']']) {
+                "localhost" | "127.0.0.1" => [127, 0, 0, 1].into(),
+                "::1" => std::net::Ipv6Addr::LOCALHOST.into(),
+                h => match h.parse::<std::net::IpAddr>() {
+                    Ok(ip) if ip.is_loopback() => ip,
+                    _ => return false,
+                },
+            };
+            TcpStream::connect_timeout(&SocketAddr::new(ip, port), Duration::from_millis(400)).is_err()
+        })
+}
+
 #[cfg(not(windows))]
 mod other {
     pub fn enable_proxy(_host: &str, _port: u16) -> Result<(), String> {
         Ok(())
     }
     pub fn restore_proxy() {}
+    pub fn interrupt_process(pid: u32) -> bool {
+        std::process::Command::new("kill").args(["-INT", &pid.to_string()]).status().is_ok_and(|s| s.success())
+    }
     pub fn is_admin() -> bool {
         true
     }
@@ -221,4 +281,22 @@ pub fn hidden_command(exe: &std::path::Path) -> std::process::Command {
         cmd.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
     }
     cmd
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_dead_local_proxy;
+
+    #[test]
+    fn dead_local_proxy() {
+        let live = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let live = live.local_addr().unwrap().port();
+        let dead = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
+        assert!(is_dead_local_proxy(&format!("127.0.0.1:{dead}")));
+        assert!(is_dead_local_proxy(&format!("http=localhost:{dead};https=127.0.0.1:{dead}")));
+        assert!(!is_dead_local_proxy(&format!("127.0.0.1:{live}")));
+        assert!(!is_dead_local_proxy("proxy.company.com:8080"));
+        assert!(!is_dead_local_proxy(&format!("http=127.0.0.1:{dead};https=proxy.company.com:8080")));
+        assert!(!is_dead_local_proxy(""));
+    }
 }

@@ -8,7 +8,5 @@
 
 ## What's new
 
-- **Windows: custom scrollbars** — slim, rounded, and tinted with your accent colour.
-- **Windows: cleaner log** — the connection log no longer floods with every request, only what matters.
-- **New README** with screenshots of both apps and a short trailer video.
-- The Chrome extension has been discontinued: VOID-RAY now focuses on Windows and Android.
+- **Windows: internet works again after disconnecting.** Turning the VPN off no longer leaves Windows pointing at a dead local proxy — even one left behind by a crash or an older version is cleared, at disconnect and at launch.
+- **Windows: TUN mode shuts down cleanly**, so its routes and firewall rules are removed instead of lingering after you disconnect.
