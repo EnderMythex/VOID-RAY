@@ -9,6 +9,7 @@
 
 ## What's new
 
-- **Windows: the ring around the selected accent colour is centred again.**
-- **Windows: lighter and smoother.** The window only redraws what changed (the gauge animation no longer restarts at every ping), a server ping test updates the screen in batches, the tray icon is only touched when the connection state changes, the log stays capped at 500 lines, and the clock pauses while the window is hidden in the tray.
-- Android: no change since 1.5.0.
+- **More reliable ping.** Each server is measured three times and the best result is kept, so one slow packet no longer spoils the number (Windows and Android).
+- **Android: real ping.** The list now shows the delay of a real request through each server (TLS, REALITY and the Cloudflare hop included), and falls back to a simple connection test when that fails. Expect higher but more honest numbers: green under 500 ms, orange under 1 s.
+- **Lighter traffic.** Finished connections are released after 1 s instead of up to 5 s (Windows and Android).
+- **Windows (TUN mode): faster first loads.** DNS goes over HTTPS through the tunnel and reuses one connection instead of opening a new one for every lookup.
