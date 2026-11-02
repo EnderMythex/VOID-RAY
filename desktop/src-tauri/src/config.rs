@@ -215,7 +215,7 @@ fn stream(p: &ServerProfile) -> Value {
 // ------------------------------------------------------------------ sing-box (TUN)
 
 /// sing-box 1.14: a TUN card that hands the whole PC's traffic to Xray's SOCKS inbound.
-pub fn tun_config(socks_port: u16) -> String {
+pub fn tun_config(socks_port: u16, interface: &str) -> String {
     let mut own: Vec<String> = vec!["xray.exe".into(), "sing-box.exe".into(), "VoidRay.exe".into()];
     if let Some(name) = std::env::current_exe().ok().and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())) {
         if !own.contains(&name) {
@@ -233,7 +233,7 @@ pub fn tun_config(socks_port: u16) -> String {
         "inbounds": [{
             "type": "tun",
             "tag": "tun-in",
-            "interface_name": "VOID-RAY",
+            "interface_name": interface,
             "address": ["172.19.0.1/30"],
             "mtu": 9000,
             "auto_route": true,

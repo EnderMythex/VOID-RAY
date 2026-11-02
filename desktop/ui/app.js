@@ -96,12 +96,10 @@ function setSeg(seg, value, attr = "v") {
   const buttons = $$("button", seg);
   const idx = Math.max(0, buttons.findIndex((b) => b.dataset[attr] === value));
   buttons.forEach((b, i) => b.classList.toggle("on", i === idx));
-  const thumb = seg.querySelector(".seg-thumb");
-  const b = buttons[idx];
-  if (thumb && b) {
-    thumb.style.width = b.offsetWidth + "px";
-    thumb.style.transform = `translateX(${b.offsetLeft - 4}px)`;
-  }
+  // Columns are equal: the thumb is placed in CSS from these two numbers, never measured,
+  // so it is right even when the control is drawn while hidden (it used to get 0 px).
+  seg.style.setProperty("--n", buttons.length);
+  seg.style.setProperty("--i", idx);
 }
 
 // ================================================================== toast & dialog

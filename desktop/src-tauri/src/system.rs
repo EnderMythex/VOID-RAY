@@ -175,6 +175,40 @@ mod win {
         let _ = show();
     }
 
+    /// True when a network card with this name exists and is up.
+    pub fn adapter_up(name: &str) -> bool {
+        use windows::Win32::Foundation::ERROR_BUFFER_OVERFLOW;
+        use windows::Win32::NetworkManagement::IpHelper::{
+            GetAdaptersAddresses, GAA_FLAG_SKIP_ANYCAST, GAA_FLAG_SKIP_DNS_SERVER, GAA_FLAG_SKIP_MULTICAST,
+            IP_ADAPTER_ADDRESSES_LH,
+        };
+        use windows::Win32::NetworkManagement::Ndis::IfOperStatusUp;
+        use windows::Win32::Networking::WinSock::AF_UNSPEC;
+
+        let flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER;
+        let mut size: u32 = 32 * 1024;
+        // u64 storage keeps the structures aligned.
+        let mut buf: Vec<u64> = vec![0; size as usize / 8];
+        unsafe {
+            let mut result = GetAdaptersAddresses(AF_UNSPEC.0 as u32, flags, None, Some(buf.as_mut_ptr().cast()), &mut size);
+            if result == ERROR_BUFFER_OVERFLOW.0 {
+                buf = vec![0; size as usize / 8 + 1];
+                result = GetAdaptersAddresses(AF_UNSPEC.0 as u32, flags, None, Some(buf.as_mut_ptr().cast()), &mut size);
+            }
+            if result != 0 {
+                return false;
+            }
+            let mut adapter = buf.as_ptr() as *const IP_ADAPTER_ADDRESSES_LH;
+            while let Some(a) = adapter.as_ref() {
+                if a.OperStatus == IfOperStatusUp && a.FriendlyName.to_string().is_ok_and(|n| n == name) {
+                    return true;
+                }
+                adapter = a.Next;
+            }
+        }
+        false
+    }
+
     pub fn is_admin() -> bool {
         unsafe { windows::Win32::UI::Shell::IsUserAnAdmin().as_bool() }
     }
@@ -322,6 +356,9 @@ mod other {
     }
     pub fn listen_for_show(_on_show: impl Fn() + Send + 'static) {}
     pub fn register_app_id() {}
+    pub fn adapter_up(_name: &str) -> bool {
+        true
+    }
     pub fn notify(_title: &str, _lines: &[String], _on_click: impl Fn() + Send + Sync + 'static) {}
 }
 

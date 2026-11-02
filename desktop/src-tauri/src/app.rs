@@ -641,21 +641,46 @@ impl Core {
         .await?;
 
         if let Some(tun_exe) = tun_exe {
+            // Only "connected" once Windows shows the card up: creating it can take 10 s and
+            // more. A card left behind by a killed session can block its name ("file already
+            // exists") until Windows drops it, so the second try uses another name.
             let tun_cfg = dir.join("tun.json");
-            std::fs::write(&tun_cfg, config::tun_config(socks)).map_err(|e| e.to_string())?;
             let cfg = tun_cfg.to_string_lossy().into_owned();
-            self.tun.start(&tun_exe, &["run", "-c", &cfg, "--disable-color"], log, on_crash)?;
-            // The TUN card needs a moment; a bad config makes sing-box exit right away.
-            for _ in 0..20 {
-                tokio::time::sleep(Duration::from_millis(150)).await;
-                if let Some(code) = self.tun.exited() {
-                    return Err(format!("Le mode TUN n'a pas démarré (code {code}). Consulte le journal."));
+            let mut started = false;
+            for (attempt, interface) in ["VOID-RAY", "VOID-RAY 2"].into_iter().enumerate() {
+                std::fs::write(&tun_cfg, config::tun_config(socks, interface)).map_err(|e| e.to_string())?;
+                self.tun.start(&tun_exe, &["run", "-c", &cfg, "--disable-color"], log.clone(), on_crash.clone())?;
+                if self.wait_tun(interface).await {
+                    started = true;
+                    break;
                 }
+                self.tun.stop();
+                if attempt == 0 {
+                    self.log("La carte réseau VOID-RAY n'a pas pu être créée, nouvel essai…".into());
+                    tokio::time::sleep(Duration::from_millis(1500)).await;
+                }
+            }
+            if !started {
+                return Err("Le mode TUN n'a pas démarré. Redémarre le PC si ça continue, puis consulte le journal.".into());
             }
         } else {
             system::enable_proxy("127.0.0.1", http)?;
         }
         Ok(())
+    }
+
+    /// Waits (up to 25 s) for the TUN card to be up; false when sing-box gave up.
+    async fn wait_tun(&self, interface: &str) -> bool {
+        for _ in 0..100 {
+            tokio::time::sleep(Duration::from_millis(250)).await;
+            if self.tun.exited().is_some() {
+                return false;
+            }
+            if system::adapter_up(interface) {
+                return true;
+            }
+        }
+        false
     }
 
     /// In TUN mode Windows' DNS goes into the tunnel, so Xray couldn't resolve
