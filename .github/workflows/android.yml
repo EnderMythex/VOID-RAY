@@ -7,8 +7,14 @@ on:
     paths: ["android/**", ".github/workflows/android.yml"]
   workflow_dispatch:
 
+env:
+  # Xray core for Android (2dust/AndroidLibXrayLite), pinned: its 64-bit libraries
+  # are 16 KB page aligned, which Google Play requires.
+  LIBV2RAY_VERSION: v26.10.31
+  LIBV2RAY_SHA256: 2efdf731b1ed624eb1cb0d5a4d0aa95c0672e89f9702226d1ba2dc90308630b6
+
 jobs:
-  apk:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -31,23 +37,75 @@ jobs:
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/voidray.keystore"
             echo "VOIDRAY_KEYSTORE=$RUNNER_TEMP/voidray.keystore" >> "$GITHUB_ENV"
           else
-            echo "::warning::VOIDRAY_KEYSTORE_B64 secret missing: APKs are signed with a throwaway debug key"
+            echo "::warning::VOIDRAY_KEYSTORE_B64 secret missing: builds are signed with a throwaway debug key"
           fi
       - name: Fetch Xray core for Android (libv2ray.aar)
         run: |
           curl -fsSL --retry 3 -o app/libs/libv2ray.aar \
-            https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
-          ls -la app/libs
+            "https://github.com/2dust/AndroidLibXrayLite/releases/download/$LIBV2RAY_VERSION/libv2ray.aar"
+          echo "$LIBV2RAY_SHA256  app/libs/libv2ray.aar" | sha256sum -c -
 
-      - name: Build APK
+      - name: Build (GitHub APKs, Google Play APKs and bundle)
         env:
-          VERSION_CODE: ${{ github.run_number }}
           VOIDRAY_KEYSTORE_PASSWORD: ${{ secrets.VOIDRAY_KEYSTORE_PASSWORD }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          ./gradlew --no-daemon assembleGithubRelease assemblePlayRelease bundlePlayRelease lintPlayRelease
+
+      - name: Check the Google Play build
+        run: |
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2"
+          apk=app/build/outputs/apk/play/release/app-play-universal-release.apk
+          "$aapt2" dump badging "$apk" | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission)"
+          # Play's Device and Network Abuse policy: the Play build never installs or updates apps itself.
+          if "$aapt2" dump permissions "$apk" | grep -q REQUEST_INSTALL_PACKAGES; then
+            echo "::error::The Google Play build must not request REQUEST_INSTALL_PACKAGES"; exit 1
+          fi
+          # Google Play requires 16 KB page aligned 64-bit native libraries.
+          unzip -o -q "$apk" "lib/arm64-v8a/*" "lib/x86_64/*" -d "$RUNNER_TEMP/so"
+          for so in "$RUNNER_TEMP"/so/lib/*/*.so; do
+            for align in $(readelf -lW "$so" | awk '$1 == "LOAD" { print $NF }' | sort -u); do
+              if [ $((align)) -lt 16384 ]; then echo "::error::$so is not 16 KB aligned ($align)"; exit 1; fi
+            done
+            echo "$so: 16 KB aligned"
+          done
+
+      - name: Lint summary (Google Play build)
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, xml.etree.ElementTree as ET
+          path = "app/build/reports/lint-results-playRelease.xml"
+          if not os.path.exists(path):
+              raise SystemExit("no lint report")
+          issues = ET.parse(path).getroot().findall("issue")
+          lines = []
+          for severity in ("Fatal", "Error", "Warning"):
+              found = [i for i in issues if i.get("severity") == severity]
+              lines.append(f"### {severity}: {len(found)}")
+              for i in found:
+                  loc = i.find("location")
+                  where = f" ({os.path.relpath(loc.get('file'))}:{loc.get('line', '')})" if loc is not None else ""
+                  lines.append(f"- `{i.get('id')}` {i.get('message')}{where}")
+          text = "\n".join(lines)
+          print(text)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("## Lint (playRelease)\n" + text + "\n")
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
           name: VoidRay-android
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/github/release/*.apk
+
+      # Upload this one in Play Console.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoidRay-play-bundle
+          path: android/app/build/outputs/bundle/playRelease/*.aab
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: android/app/build/reports/lint-results-playRelease.*

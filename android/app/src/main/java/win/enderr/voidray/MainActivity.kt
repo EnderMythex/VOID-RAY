@@ -49,6 +49,11 @@ class MainActivity : ComponentActivity() {
         when (VpnState.status.value) {
             VpnStatus.Connected -> vm.stopVpn()
             VpnStatus.Disconnected -> {
+                // Explain what the VPN does before Android's own consent dialog, the first time.
+                if (!vm.disclosureAccepted) {
+                    vm.askDisclosure()
+                    return
+                }
                 val consent = VpnService.prepare(this)
                 if (consent != null) vpnPermission.launch(consent) else vm.startVpn()
             }

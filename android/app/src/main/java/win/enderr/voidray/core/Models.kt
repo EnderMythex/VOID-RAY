@@ -39,6 +39,14 @@ data class ServerProfile(
 ) {
     val key: String get() = "$protocol|$remark|$address|$port"
 
+    /**
+     * True when the traffic to the server is encrypted: TLS or REALITY, or the
+     * protocol's own encryption. Google Play's VpnService policy requires it.
+     */
+    val isEncrypted: Boolean
+        get() = rawXrayJson?.let { json -> runCatching { jsonEncrypted(JSONObject(json)) }.getOrDefault(false) }
+            ?: encrypted(protocol, security, vmessSecurity, method, encryption)
+
     fun toJson(): JSONObject = JSONObject().apply {
         put("protocol", protocol); put("remark", remark); put("address", address); put("port", port)
         putOpt("id", id); putOpt("method", method); putOpt("flow", flow); putOpt("encryption", encryption)
@@ -71,6 +79,34 @@ data class ServerProfile(
             isBypassPatched = o.optBoolean("isBypassPatched"),
         )
     }
+}
+
+private fun encrypted(protocol: String, security: String?, vmessSecurity: String?, method: String?, encryption: String?): Boolean {
+    if (security?.lowercase() in setOf("tls", "xtls", "reality")) return true
+    return when (protocol.lowercase()) {
+        "vmess" -> (vmessSecurity?.ifBlank { null } ?: "auto").lowercase() !in setOf("none", "zero")
+        "shadowsocks" -> !method.isNullOrBlank() && method.lowercase() !in setOf("none", "plain")
+        "vless" -> !encryption.isNullOrBlank() && encryption.lowercase() != "none"
+        else -> false // trojan and the rest need TLS or REALITY
+    }
+}
+
+/** Same check on the first proxy outbound of a JSON config (vnext/servers lists or the flat form). */
+private fun jsonEncrypted(root: JSONObject): Boolean {
+    val outbounds = root.optJSONArray("outbounds") ?: return false
+    val proxy = (0 until outbounds.length()).mapNotNull { outbounds.optJSONObject(it) }
+        .firstOrNull { it.optString("protocol").lowercase() in setOf("vless", "vmess", "trojan", "shadowsocks") }
+        ?: return false
+    val settings = proxy.optJSONObject("settings") ?: JSONObject()
+    val user = settings.optJSONArray("vnext")?.optJSONObject(0)?.optJSONArray("users")?.optJSONObject(0) ?: settings
+    val server = settings.optJSONArray("servers")?.optJSONObject(0) ?: settings
+    return encrypted(
+        proxy.optString("protocol"),
+        proxy.optJSONObject("streamSettings")?.optString("security"),
+        user.optString("security"),
+        server.optString("method"),
+        user.optString("encryption"),
+    )
 }
 
 class SubscriptionInfo(

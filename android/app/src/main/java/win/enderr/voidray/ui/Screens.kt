@@ -1,5 +1,6 @@
 package win.enderr.voidray.ui
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,16 +9,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +30,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
@@ -42,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -51,7 +55,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.delay
+import win.enderr.voidray.BuildConfig
 import win.enderr.voidray.core.Brand
 import win.enderr.voidray.core.Format
 import win.enderr.voidray.i18n.L
@@ -67,10 +73,20 @@ fun VoidRayApp(vm: MainViewModel, systemDark: Boolean, status: VpnStatus, onTogg
     val p = palette(light, vm.accent)
     var sheet by remember { mutableStateOf(SheetKind.None) }
 
+    // Edge to edge: dark system bar icons on the light theme, light ones on the dark theme.
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.getInsetsController(window, view).run {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
+    }
+
     androidx.compose.runtime.CompositionLocalProvider(LocalPalette provides p) {
         key(vm.langTick) {
             Box(Modifier.fillMaxSize().background(p.bg)) {
-                Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
+                Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
                     Header(vm) { sheet = SheetKind.Account }
                     if (vm.authenticated) {
                         Home(vm, status, onToggleVpn, openServers = { sheet = SheetKind.Servers }, openSettings = { sheet = SheetKind.Settings })
@@ -84,6 +100,7 @@ fun VoidRayApp(vm: MainViewModel, systemDark: Boolean, status: VpnStatus, onTogg
                 Sheet(sheet == SheetKind.Settings, L.t("settings"), close) { SettingsContent(vm) { sheet = SheetKind.None } }
                 ToastHost(vm, Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 70.dp))
                 UpdateDialog(vm)
+                DisclosureDialog(vm, onAccept = { vm.acceptDisclosure(); onToggleVpn() })
             }
         }
     }
@@ -280,10 +297,19 @@ private fun Gate(vm: MainViewModel, openSettings: () -> Unit) {
         }
         Spacer(Modifier.height(18.dp))
         Row(Modifier.padding(horizontal = 6.dp)) {
-            Text(L.t("gateHelp"), color = p.muted, fontSize = 13.sp)
+            // The Google Play build only points to help, never to getting a subscription elsewhere.
+            Text(L.t(if (BuildConfig.PLAY_STORE) "gateHelpPlay" else "gateHelp"), color = p.muted, fontSize = 13.sp,
+                modifier = Modifier.weight(1f, fill = false))
             Spacer(Modifier.width(6.dp))
             Text(L.t("gateContact"), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.clickable { vm.openUrl(Brand.DEFAULT_SUPPORT_URL) })
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(Modifier.padding(horizontal = 6.dp)) {
+            Text(L.t("privacyNote"), color = p.muted, fontSize = 13.sp, modifier = Modifier.weight(1f, fill = false))
+            Spacer(Modifier.width(6.dp))
+            Text(L.t("privacyPolicy"), color = p.ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { vm.openUrl(Brand.PRIVACY_URL) })
         }
         Spacer(Modifier.height(28.dp))
     }
@@ -330,6 +356,7 @@ private fun ServersContent(vm: MainViewModel, status: VpnStatus, done: () -> Uni
                         Tag(item.networkTag)
                         item.securityTag?.let { Tag(it, TagKind.Sec) }
                         if (item.profile.isBypassPatched) Tag("BYPASS", TagKind.Warn)
+                        if (!item.encrypted) Tag(L.t("tagNoEnc"), TagKind.Warn)
                     }
                 }
                 Text(
@@ -468,9 +495,13 @@ private fun SettingsContent(vm: MainViewModel, close: () -> Unit) {
 
     GroupTitle(L.t("about"))
     Group(padding = 0.dp) {
-        SettingsRow(L.t("updCheck"), vm.updateLabel, accent = vm.availableUpdate != null) { vm.checkUpdates(manual = true) }
-        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(p.ink.copy(alpha = .06f)))
+        if (vm.canSelfUpdate) {
+            SettingsRow(L.t("updCheck"), vm.updateLabel, accent = vm.availableUpdate != null) { vm.checkUpdates(manual = true) }
+            Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(p.ink.copy(alpha = .06f)))
+        }
         SettingsRow(L.t("support"), "") { vm.openUrl(vm.supportUrl) }
+        Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(1.dp).background(p.ink.copy(alpha = .06f)))
+        SettingsRow(L.t("privacyPolicy"), "") { vm.openUrl(Brand.PRIVACY_URL) }
     }
     Spacer(Modifier.height(14.dp))
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -542,6 +573,36 @@ private fun UpdateDialog(vm: MainViewModel) {
             Text(
                 L.t("updLater"), color = p.ink2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable { vm.dismissUpdate() }.padding(vertical = 14.dp),
+            )
+        }
+    }
+}
+
+// ==================================================================== VPN disclosure
+
+/** Once, before the first connection: what the VPN does with the traffic. Closing it is not consent. */
+@Composable
+private fun DisclosureDialog(vm: MainViewModel, onAccept: () -> Unit) {
+    val p = LocalPalette.current
+    if (!vm.disclosureVisible) return
+    androidx.compose.ui.window.Dialog(onDismissRequest = { vm.dismissDisclosure() }) {
+        Column(Modifier.clip(RoundedCornerShape(28.dp)).background(p.sheet).verticalScroll(rememberScrollState()).padding(22.dp)) {
+            Text(L.t("discTitle"), color = p.ink, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            for (key in listOf("discVpn", "discData", "discNone")) {
+                Spacer(Modifier.height(10.dp))
+                Text(L.t(key), color = p.muted, fontSize = 14.sp, lineHeight = 20.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                L.t("privacyPolicy"), color = p.accentText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { vm.openUrl(Brand.PRIVACY_URL) }.padding(vertical = 6.dp),
+            )
+            Spacer(Modifier.height(14.dp))
+            PillButton(L.t("discAccept"), Ico.arrowRight, onAccept)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                L.t("discLater"), color = p.ink2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable { vm.dismissDisclosure() }.padding(vertical = 14.dp),
             )
         }
     }

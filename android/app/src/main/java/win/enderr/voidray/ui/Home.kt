@@ -30,6 +30,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,9 +40,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +57,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -81,6 +87,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import win.enderr.voidray.vpn.VpnStatus
 import kotlin.math.cos
@@ -216,6 +223,7 @@ fun SlideToConnect(status: VpnStatus, label: String, onToggle: () -> Unit, modif
     val connected = status == VpnStatus.Connected
     val busy = status == VpnStatus.Connecting || status == VpnStatus.Disconnecting
     val atEnd = status == VpnStatus.Connected || status == VpnStatus.Connecting
+    val currentAtEnd by rememberUpdatedState(atEnd)
 
     BoxWithConstraints(modifier.height(knob)) {
         val density = LocalDensity.current
@@ -267,6 +275,9 @@ fun SlideToConnect(status: VpnStatus, label: String, onToggle: () -> Unit, modif
                         if (turnOn || turnOff) {
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             onToggle()
+                            // Nothing started (disclosure or VPN consent on screen, refusal): put the knob back.
+                            delay(800)
+                            if (currentAtEnd == atEnd) offset.animateTo(if (atEnd) max else 0f, spring(dampingRatio = .7f, stiffness = 500f))
                         } else {
                             offset.animateTo(if (atEnd) max else 0f, spring(dampingRatio = .7f, stiffness = 500f))
                         }
@@ -383,7 +394,8 @@ fun Sheet(visible: Boolean, title: String, onDismiss: () -> Unit, content: @Comp
                         .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
                         .background(p.sheet)
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { }
-                        .navigationBarsPadding(),
+                        .navigationBarsPadding()
+                        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal)),
                 ) {
                     Column(
                         Modifier.fillMaxWidth().draggable(

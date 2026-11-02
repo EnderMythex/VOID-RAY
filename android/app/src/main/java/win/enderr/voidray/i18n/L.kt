@@ -32,6 +32,9 @@ object L {
         "gateChecking" to ("Checking…" to "Vérification…"),
         "gateHelp" to ("No subscription yet?" to "Pas encore d'abonnement ?"),
         "gateContact" to ("Contact support" to "Contacter l'assistance"),
+        "gateHelpPlay" to ("Need help with your link?" to "Besoin d'aide avec ton lien ?"),
+        "privacyNote" to ("Your link is only sent to EnderrVPN." to "Ton lien n'est envoyé qu'à EnderrVPN."),
+        "privacyPolicy" to ("Privacy policy" to "Politique de confidentialité"),
         "paste" to ("Paste" to "Coller"),
         "errFormat" to ("This is not an EnderrVPN link. It should look like https://sub.enderr.win/ender/…" to
             "Ce n'est pas un lien EnderrVPN. Il doit ressembler à https://sub.enderr.win/ender/…"),
@@ -124,6 +127,19 @@ object L {
         "errNoTraffic" to ("Connected, but no traffic gets through. Try another server." to
             "Connecté, mais aucun trafic ne passe. Essaie un autre serveur."),
         "errPermission" to ("VPN permission was refused." to "L'autorisation VPN a été refusée."),
+        "errUnencrypted" to ("This server isn't encrypted: VOID-RAY only connects to encrypted servers." to
+            "Ce serveur n'est pas chiffré : VOID-RAY ne se connecte qu'à des serveurs chiffrés."),
+        "tagNoEnc" to ("Not encrypted" to "Non chiffré"),
+        // VPN disclosure (before the first connection)
+        "discTitle" to ("Before you connect" to "Avant de te connecter"),
+        "discVpn" to ("VOID-RAY uses Android's VpnService to create an encrypted tunnel between this device and the EnderrVPN server you choose. While you're connected, all your internet traffic goes through this tunnel." to
+            "VOID-RAY utilise le VpnService d'Android pour créer un tunnel chiffré entre cet appareil et le serveur EnderrVPN que tu choisis. Pendant la connexion, tout ton trafic internet passe par ce tunnel."),
+        "discData" to ("Your subscription link stays on this device and is only sent to EnderrVPN, which counts the data your subscription uses to apply your plan." to
+            "Ton lien d'abonnement reste sur cet appareil et n'est envoyé qu'à EnderrVPN, qui compte les données utilisées par ton abonnement pour appliquer ton forfait."),
+        "discNone" to ("No ads, no analytics, no trackers: the app doesn't record or sell what you do online." to
+            "Ni pub, ni statistiques, ni traceurs : l'app n'enregistre pas et ne vend pas ce que tu fais en ligne."),
+        "discAccept" to ("Accept and connect" to "Accepter et se connecter"),
+        "discLater" to ("Not now" to "Pas maintenant"),
         "failed" to ("failed" to "échec"),
         // updates
         "updCheck" to ("Check for updates" to "Vérifier les mises à jour"),

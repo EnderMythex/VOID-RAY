@@ -14,6 +14,9 @@ on:
 
 env:
   VERSION: ${{ inputs.version || github.ref_name }}
+  # Same pinned Xray core as the Android workflow (16 KB page aligned).
+  LIBV2RAY_VERSION: v26.10.31
+  LIBV2RAY_SHA256: 2efdf731b1ed624eb1cb0d5a4d0aa95c0672e89f9702226d1ba2dc90308630b6
 
 permissions:
   contents: write
@@ -52,7 +55,7 @@ jobs:
           cd .. && mkdir -p out && cp desktop/src-tauri/target/release/VoidRay.exe out/VoidRay-win-x64.exe
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
+          name: release-windows
           path: out/*
 
   android:
@@ -82,24 +85,31 @@ jobs:
       - name: Fetch Xray core for Android
         run: |
           curl -fsSL --retry 3 -o app/libs/libv2ray.aar \
-            https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
-      - name: Build APKs
+            "https://github.com/2dust/AndroidLibXrayLite/releases/download/$LIBV2RAY_VERSION/libv2ray.aar"
+          echo "$LIBV2RAY_SHA256  app/libs/libv2ray.aar" | sha256sum -c -
+      - name: Build APKs and the Google Play bundle
         env:
           VOIDRAY_KEYSTORE_PASSWORD: ${{ secrets.VOIDRAY_KEYSTORE_PASSWORD }}
         run: |
           export VERSION_NAME="${VERSION#v}"
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
-          mkdir -p ../out
-          for f in app/build/outputs/apk/release/app-*-release.apk; do
-            abi=$(basename "$f" | sed -E 's/^app-(.*)-release\.apk$/\1/')
+          ./gradlew --no-daemon assembleGithubRelease bundlePlayRelease
+          mkdir -p ../out ../play
+          for f in app/build/outputs/apk/github/release/app-github-*-release.apk; do
+            abi=$(basename "$f" | sed -E 's/^app-github-(.*)-release\.apk$/\1/')
             cp "$f" "../out/VoidRay-android-$abi.apk"
           done
-          ls -la ../out
+          cp app/build/outputs/bundle/playRelease/app-play-release.aab "../play/VoidRay-play-$VERSION_NAME.aab"
+          ls -la ../out ../play
       - uses: actions/upload-artifact@v4
         with:
-          name: android
+          name: release-android
           path: out/*
+      # For Play Console only: kept out of the GitHub release.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VoidRay-play-bundle
+          path: play/*
 
   release:
     needs: [windows, android]
@@ -109,6 +119,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: release-*
           merge-multiple: true
       - run: ls -la dist
       - name: Tag name

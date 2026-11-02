@@ -6,17 +6,32 @@ plugins {
 
 android {
     namespace = "win.enderr.voidray"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "win.enderr.voidray"
         minSdk = 26
-        targetSdk = 35
+        // Google Play requires new apps and updates to target Android 16 (API 36).
+        targetSdk = 36
         // Release builds pass VERSION_NAME (from the git tag); the code grows with it.
-        val version = System.getenv("VERSION_NAME") ?: "1.3.0"
+        val version = System.getenv("VERSION_NAME") ?: "1.5.0"
         val parts = version.split('.').map { it.toIntOrNull() ?: 0 } + listOf(0, 0, 0)
         versionName = version
         versionCode = parts[0] * 10000 + parts[1] * 100 + parts[2]
+    }
+
+    flavorDimensions += "store"
+    productFlavors {
+        // GitHub releases: the app checks the project's releases and installs newer APKs itself.
+        create("github") {
+            dimension = "store"
+            buildConfigField("boolean", "PLAY_STORE", "false")
+        }
+        // Google Play: Play delivers the updates, so no self-update code and no install permission.
+        create("play") {
+            dimension = "store"
+            buildConfigField("boolean", "PLAY_STORE", "true")
+        }
     }
 
     signingConfigs {
@@ -65,6 +80,10 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+    lint {
+        // CI keeps the full report (lintPlayRelease); only fatal issues stop a build.
+        abortOnError = false
     }
 }
 

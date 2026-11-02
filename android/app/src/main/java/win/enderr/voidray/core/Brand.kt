@@ -6,6 +6,8 @@ object Brand {
     const val SUB_HOST = "sub.enderr.win"
     const val LINK_EXAMPLE = "https://sub.enderr.win/ender/…"
     const val DEFAULT_SUPPORT_URL = "https://discord.gg/BzG6FJz6zK"
+    /** HEAD follows the repository's default branch. */
+    const val PRIVACY_URL = "https://github.com/EnderMythex/VOID-RAY/blob/HEAD/PRIVACY.md"
 
     private val linkPattern = Regex(
         """^https://sub\.enderr\.win/ender/([A-Za-z0-9_-]{4,64})/?$""",

@@ -44,6 +44,7 @@ class ServerItem(val profile: ServerProfile) {
     /** 3x-ui appends "-email" to every remark: keep the readable part only. */
     val name: String = profile.remark.replace(Regex("""\s*[-–—|]\s*[^\s@]+@[^\s@]+\.[A-Za-z]{2,}\s*$"""), "").trim()
         .ifEmpty { profile.remark }
+    val encrypted: Boolean = profile.isEncrypted
     val protocolTag = if (profile.protocol == "shadowsocks") "SS" else profile.protocol.uppercase()
     val networkTag = when (val n = profile.network.lowercase()) { "raw" -> "TCP"; "splithttp" -> "XHTTP"; else -> n.uppercase() }
     val securityTag = profile.security.takeUnless { it.isBlank() || it == "none" }?.uppercase()
@@ -106,7 +107,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     var toast by mutableStateOf<ToastMsg?>(null); private set
 
-    // ---- updates
+    // ---- VPN disclosure, shown once before the first connection (Google Play's prominent disclosure)
+    var disclosureVisible by mutableStateOf(false); private set
+    val disclosureAccepted: Boolean get() = store.vpnDisclosureAccepted
+
+    // ---- updates (GitHub builds only: on Google Play, Play delivers them)
+    val canSelfUpdate: Boolean = !BuildConfig.PLAY_STORE
     val currentVersion: String = "v" + BuildConfig.VERSION_NAME
     var checkingUpdate by mutableStateOf(false); private set
     var availableUpdate by mutableStateOf<AppUpdater.Release?>(null); private set
@@ -216,6 +222,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun signOut(error: String?) {
         refreshLoop?.cancel()
         store.clearSubscription()
+        VoidRayVpnService.configFile(getApplication()).delete()
         sub = null
         servers.clear()
         selectedKey = null
@@ -275,7 +282,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (rebuild || servers.isEmpty()) {
             servers.clear()
             servers.addAll(info.servers.map(::ServerItem))
-            if (servers.none { it.profile.key == selectedKey }) select(servers.firstOrNull())
+            if (servers.none { it.profile.key == selectedKey }) select(servers.firstOrNull { it.encrypted })
         }
         val id = sid
         val list = store.history(id)
@@ -369,6 +376,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val selected: ServerItem? get() = servers.firstOrNull { it.profile.key == selectedKey }
 
     fun select(item: ServerItem?) {
+        if (item != null && !item.encrypted) {
+            showToast(L.t("errUnencrypted"), error = true)
+            return
+        }
         val changed = item?.profile?.key != selectedKey
         selectedKey = item?.profile?.key
         store.selectedKey = selectedKey
@@ -393,6 +404,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun startVpn() {
         val server = selected ?: run {
             showToast(L.t("pickServer"), error = true)
+            return
+        }
+        if (!server.encrypted) {
+            showToast(L.t("errUnencrypted"), error = true)
             return
         }
         val ctx = getApplication<Application>()
@@ -435,7 +450,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         }
 
     fun checkUpdates(manual: Boolean) {
-        if (checkingUpdate) return
+        if (!canSelfUpdate || checkingUpdate) return
         if (manual && availableUpdate != null) {
             updatePrompt = availableUpdate
             return
@@ -489,6 +504,21 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 checkingUpdate = false
             }
         }
+    }
+
+    // ================================================================ disclosure
+
+    fun askDisclosure() {
+        disclosureVisible = true
+    }
+
+    fun acceptDisclosure() {
+        store.vpnDisclosureAccepted = true
+        disclosureVisible = false
+    }
+
+    fun dismissDisclosure() {
+        disclosureVisible = false
     }
 
     // ================================================================ misc

@@ -31,6 +31,11 @@ class Store(context: Context) {
         get() = prefs.getString("language", "auto") ?: "auto"
         set(v) = prefs.edit().putString("language", v).apply()
 
+    /** True once the user accepted the VPN disclosure shown before the first connection. */
+    var vpnDisclosureAccepted: Boolean
+        get() = prefs.getBoolean("vpnDisclosureAccepted", false)
+        set(v) = prefs.edit().putBoolean("vpnDisclosureAccepted", v).apply()
+
     var cachedSubscription: SubscriptionInfo?
         get() = prefs.getString("cachedSubscription", null)?.let {
             runCatching { SubscriptionInfo.fromJson(JSONObject(it)) }.getOrNull()
@@ -52,7 +57,10 @@ class Store(context: Context) {
         prefs.edit().putString("history:$sid", a.toString()).apply()
     }
 
+    /** Forgets the subscription and everything derived from it: link, cache, chosen server, usage history. */
     fun clearSubscription() {
-        prefs.edit().remove("subscriptionUrl").remove("cachedSubscription").remove("selectedKey").apply()
+        val editor = prefs.edit().remove("subscriptionUrl").remove("cachedSubscription").remove("selectedKey")
+        prefs.all.keys.filter { it.startsWith("history:") }.forEach { editor.remove(it) }
+        editor.apply()
     }
 }
