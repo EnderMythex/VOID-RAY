@@ -1,0 +1,1 @@
+First release on Google Play: slide to connect, live speed in the notification, Quick Settings tile, encrypted servers only.

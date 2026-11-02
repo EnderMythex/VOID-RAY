@@ -75,7 +75,9 @@ Only valid EnderrVPN links are accepted, and everything else configures itself.
   path `/x7k2p` or the one from the subscription, `chrome` fingerprint, ALPN `http/1.1`).
 - **Dark / light / auto theme**, **6 accent colours**, English / French.
 - **Built-in updates**: *Check for updates* reads the latest GitHub release and installs
-  it (the PC replaces its exe and restarts, Android opens the installer).
+  it (the PC replaces its exe and restarts, Android opens the installer). The Google Play
+  build gets its updates from Play instead.
+- **Encrypted servers only**: servers without TLS, REALITY or protocol encryption are refused.
 
 Protocols: `VLESS` (REALITY, TLS, Vision), `VMess`, `Trojan`, `Shadowsocks` (including
 2022), over TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP and mKCP. Xray JSON subscriptions
@@ -102,9 +104,15 @@ Requirements: Android SDK and JDK 17.
 
 ```bash
 curl -L -o android/app/libs/libv2ray.aar \
-  https://github.com/2dust/AndroidLibXrayLite/releases/latest/download/libv2ray.aar
-cd android && ./gradlew assembleRelease
+  https://github.com/2dust/AndroidLibXrayLite/releases/download/v26.10.31/libv2ray.aar
+cd android
+./gradlew assembleGithubRelease   # APKs for GitHub releases (with the built-in updater)
+./gradlew bundlePlayRelease       # Android App Bundle for Google Play (no self-update)
 ```
+
+Two flavors share the code: `github` updates itself from the releases, `play` leaves updates
+to Google Play and has no install permission. Publishing on Google Play is described in
+[docs/PLAY_STORE.md](docs/PLAY_STORE.md).
 
 ## Releasing
 
@@ -113,8 +121,14 @@ cd android && ./gradlew assembleRelease
    `v1.4.0` tag.
 
 The workflow builds `VoidRay-win-x64.exe` and the `VoidRay-android-*.apk` files, then
-creates the release. The version must be higher than the previous one (Android refuses
+creates the release. The Google Play bundle is kept as the run's `VoidRay-play-bundle`
+artifact. The version must be higher than the previous one (Android refuses
 to install an older version). The repo must be public so users can download updates.
+
+## Privacy
+
+No account, no ads, no analytics: your subscription link stays on your device and is only
+sent to EnderrVPN. Read the [privacy policy](PRIVACY.md).
 
 ## Project layout
 
@@ -125,9 +139,13 @@ desktop/                 Windows app (Rust + Tauri v2)
 │                        system (proxy, elevation), tray, net (ping, IP, updates)
 └── ui/                  index.html, style.css, app.js, i18n.js
 android/                 Android app (Kotlin + Compose)
-└── app/src/main/java/win/enderr/voidray/
-    ├── core/            LinkParser, SubscriptionFetcher, XrayConfig, FirewallBypass
-    ├── ui/              Home (black hole, swipe to connect), Screens, Theme
-    └── vpn/             VoidRayVpnService, Quick Settings tile
+└── app/src/
+    ├── main/java/win/enderr/voidray/
+    │   ├── core/        LinkParser, SubscriptionFetcher, XrayConfig, FirewallBypass
+    │   ├── ui/          Home (black hole, swipe to connect), Screens, Theme
+    │   └── vpn/         VoidRayVpnService, Quick Settings tile
+    ├── github/          GitHub updater (APK download and install)
+    └── play/            Google Play build: no self-update
+fastlane/metadata/       Google Play listing: texts (en-US, fr-FR) and graphics
 src/VoidRay/             Legacy Windows app (WPF / .NET 8), replaced by desktop/
 ```

@@ -1,0 +1,1 @@
+Première version sur Google Play : glisse pour te connecter, débit en direct dans la notification, tuile Réglages rapides, serveurs chiffrés uniquement.

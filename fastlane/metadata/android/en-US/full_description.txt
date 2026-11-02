@@ -1,0 +1,22 @@
+VOID-RAY is the VPN app for EnderrVPN subscribers. Paste the subscription link you received from EnderrVPN, slide to connect, and your phone's internet traffic goes through an encrypted tunnel.
+
+An active EnderrVPN subscription is required: the app only accepts EnderrVPN subscription links (sub.enderr.win).
+
+How it works
+VOID-RAY uses Android's VpnService to create an encrypted tunnel between your device and the EnderrVPN server you choose. While you're connected, all your internet traffic goes through this tunnel, and websites see the server's IP address instead of yours. VpnService is the core of the app and is only used to provide this VPN connection.
+
+Features
+• One link: your servers and your plan load automatically.
+• Slide to connect, around an animated black hole.
+• Live upload and download speed in the notification, with a Disconnect button.
+• Quick Settings tile to connect without opening the app.
+• Your plan at a glance: data used, quota, expiry date and daily usage.
+• Server list with a latency test.
+• Encrypted connections only: VLESS (REALITY, TLS), VMess, Trojan and Shadowsocks, powered by the open-source Xray core. Servers without encryption are refused.
+• Dark, light or automatic theme, six accent colours, English and French.
+
+Privacy
+• No account to create, no ads, no analytics, no trackers.
+• Your subscription link stays on your device and is only sent to EnderrVPN.
+• The app doesn't record or sell what you do online.
+Full privacy policy: https://github.com/EnderMythex/VOID-RAY/blob/HEAD/PRIVACY.md

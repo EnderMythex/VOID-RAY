@@ -8,5 +8,8 @@
 
 ## What's new
 
-- **Windows: internet works again after disconnecting.** Turning the VPN off no longer leaves Windows pointing at a dead local proxy — even one left behind by a crash or an older version is cleared, at disconnect and at launch.
-- **Windows: TUN mode shuts down cleanly**, so its routes and firewall rules are removed instead of lingering after you disconnect.
+- **Android: ready for Google Play.** The app targets Android 16 and follows Play's rules for VPN apps.
+- **Android: a short explanation before your first connection** of what the VPN does with your traffic, and a link to the new [privacy policy](https://github.com/EnderMythex/VOID-RAY/blob/HEAD/PRIVACY.md) in Settings and on the link screen.
+- **Android: encrypted servers only.** Servers without encryption are tagged and refused.
+- **Android: "Use another link" now also clears your usage history**, and app data stays out of backups.
+- Android: status bar icons stay visible with the light theme, and the slider returns to its place when the connection doesn't start.
