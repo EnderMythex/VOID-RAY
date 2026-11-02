@@ -79,6 +79,11 @@ pub fn xray_config(p: &ServerProfile, socks_port: u16, http_port: u16) -> Result
     };
 
     root.insert("log".into(), json!({"loglevel": "warning", "access": "none"}));
+    // Free finished connections quickly (Xray waits up to 2 s / 5 s by default).
+    root.insert(
+        "policy".into(),
+        json!({"levels": {"0": {"handshake": 4, "connIdle": 300, "uplinkOnly": 1, "downlinkOnly": 1}}}),
+    );
     root.insert(
         "inbounds".into(),
         json!([
@@ -220,7 +225,9 @@ pub fn tun_config(socks_port: u16) -> String {
     let v = json!({
         "log": {"level": "warn", "timestamp": true},
         "dns": {
-            "servers": [{"type": "tcp", "tag": "remote", "server": "1.1.1.1", "detour": "proxy"}],
+            // DNS over HTTPS keeps one connection open through the tunnel; plain TCP DNS
+            // opened a new one (handshake to the server and on to 1.1.1.1) for every lookup.
+            "servers": [{"type": "https", "tag": "remote", "server": "1.1.1.1", "detour": "proxy"}],
             "strategy": "ipv4_only"
         },
         "inbounds": [{

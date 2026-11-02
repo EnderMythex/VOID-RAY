@@ -1,5 +1,6 @@
 package win.enderr.voidray.vpn
 
+import libv2ray.Libv2ray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.InetAddress
@@ -9,14 +10,41 @@ import java.net.Socket
 import java.net.URL
 
 object NetTools {
-    /** TCP handshake latency to the server in ms (null on failure). */
-    fun tcpPing(host: String, port: Int, timeoutMs: Int = 3000): Int? = try {
-        val address = InetAddress.getAllByName(host).let { all -> all.firstOrNull { it.address.size == 4 } ?: all.first() }
-        Socket().use { s ->
-            val start = System.nanoTime()
-            s.connect(InetSocketAddress(address, port), timeoutMs)
-            maxOf(1, ((System.nanoTime() - start) / 1_000_000).toInt())
+    private const val DELAY_URL = "https://www.gstatic.com/generate_204"
+
+    /**
+     * Best of three TCP handshakes to the server in ms (null on failure), the name resolved
+     * once: one slow packet shouldn't decide the latency. A dead server stops at the first timeout.
+     */
+    fun tcpPing(host: String, port: Int, timeoutMs: Int = 2000): Int? {
+        val address = try {
+            InetAddress.getAllByName(host).let { all -> all.firstOrNull { it.address.size == 4 } ?: all.first() }
+        } catch (e: Exception) {
+            return null
         }
+        var best: Int? = null
+        repeat(3) {
+            try {
+                Socket().use { s ->
+                    val start = System.nanoTime()
+                    s.connect(InetSocketAddress(address, port), timeoutMs)
+                    val ms = maxOf(1, ((System.nanoTime() - start) / 1_000_000).toInt())
+                    best = minOf(best ?: ms, ms)
+                }
+            } catch (e: Exception) {
+                if (best == null) return null
+            }
+        }
+        return best
+    }
+
+    /**
+     * Real latency through the server: a temporary Xray instance (no inbound) fetches a tiny
+     * page through the proxy, so TLS, REALITY, WebSocket or the Cloudflare hop all count,
+     * which a TCP handshake can't show. Null when the server doesn't carry traffic.
+     */
+    fun realDelay(config: String): Int? = try {
+        Libv2ray.measureOutboundDelay(config, DELAY_URL).takeIf { it > 0 }?.toInt()
     } catch (e: Exception) {
         null
     }

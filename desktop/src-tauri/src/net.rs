@@ -7,15 +7,26 @@ use serde::Serialize;
 use serde_json::Value;
 
 /// TCP handshake latency to the server, in ms (None on failure).
+/// Best of three TCP handshakes, the name resolved once: the first handshake pays for cold
+/// caches and one slow packet shouldn't decide a server's latency. A dead server stops at
+/// the first timeout.
 pub async fn tcp_ping(host: &str, port: u16) -> Option<u32> {
-    let work = async {
-        let addrs: Vec<SocketAddr> = tokio::net::lookup_host((host, port)).await.ok()?.collect();
-        let addr = addrs.iter().find(|a| a.is_ipv4()).or_else(|| addrs.first()).copied()?;
+    let lookup = tokio::time::timeout(Duration::from_secs(3), tokio::net::lookup_host((host, port)));
+    let addrs: Vec<SocketAddr> = lookup.await.ok()?.ok()?.collect();
+    let addr = addrs.iter().find(|a| a.is_ipv4()).or_else(|| addrs.first()).copied()?;
+    let mut best: Option<u32> = None;
+    for _ in 0..3 {
         let started = Instant::now();
-        tokio::net::TcpStream::connect(addr).await.ok()?;
-        Some(started.elapsed().as_millis().max(1) as u32)
-    };
-    tokio::time::timeout(Duration::from_secs(3), work).await.ok().flatten()
+        match tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(addr)).await {
+            Ok(Ok(_)) => {
+                let ms = started.elapsed().as_millis().max(1) as u32;
+                best = Some(best.map_or(ms, |b| b.min(ms)));
+            }
+            _ if best.is_none() => return None,
+            _ => {}
+        }
+    }
+    best
 }
 
 /// Resolves a host name to an IPv4 address (before the TUN exists).

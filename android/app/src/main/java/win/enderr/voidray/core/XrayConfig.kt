@@ -30,6 +30,14 @@ object XrayConfig {
         }
 
         root.put("log", JSONObject().put("loglevel", "warning"))
+        // Free finished connections quickly (Xray waits up to 2 s / 5 s by default).
+        root.put(
+            "policy", JSONObject().put(
+                "levels", JSONObject().put(
+                    "8", JSONObject().put("handshake", 4).put("connIdle", 300).put("uplinkOnly", 1).put("downlinkOnly", 1),
+                ),
+            ),
+        )
         root.put(
             "inbounds", JSONArray()
                 .put(

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import libv2ray.Libv2ray
 import win.enderr.voidray.core.Brand
 import win.enderr.voidray.core.FirewallBypass
 import win.enderr.voidray.core.Format
@@ -59,12 +60,14 @@ class ServerItem(val profile: ServerProfile) {
         else -> "$ping ms"
     }
 
-    fun setResult(ms: Int?) {
+    /** [real]: measured through the server (several round trips), so it gets wider bands than a TCP handshake. */
+    fun setResult(ms: Int?, real: Boolean = false) {
         ping = ms
+        val (good, medium) = if (real) 500 to 1000 else 150 to 350
         quality = when {
             ms == null -> PingQuality.Timeout
-            ms < 150 -> PingQuality.Good
-            ms < 350 -> PingQuality.Medium
+            ms < good -> PingQuality.Good
+            ms < medium -> PingQuality.Medium
             else -> PingQuality.Bad
         }
     }
@@ -389,15 +392,37 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (changed && item != null && VpnState.status.value == VpnStatus.Connected) startVpn()
     }
 
+    /**
+     * Real delay through each server first (what browsing actually feels like, Cloudflare hop
+     * included); the TCP handshake when that test fails, so a server still shows whether it answers.
+     */
     fun pingAll() {
         val items = servers.toList()
         items.forEach { it.quality = PingQuality.Testing }
-        val gate = Semaphore(8)
+        val ctx = getApplication<Application>()
+        // Each real test starts a small Xray instance: keep a few at a time.
+        val gate = Semaphore(4)
         items.forEach { item ->
             viewModelScope.launch {
-                val ms = gate.withPermit { withContext(Dispatchers.IO) { NetTools.tcpPing(item.profile.address, item.profile.port) } }
-                item.setResult(ms)
+                val (ms, real) = gate.withPermit {
+                    withContext(Dispatchers.IO) {
+                        coreEnv(ctx)
+                        val config = runCatching { XrayConfig.build(item.profile) }.getOrNull()
+                        config?.let(NetTools::realDelay)?.let { it to true }
+                            ?: (NetTools.tcpPing(item.profile.address, item.profile.port) to false)
+                    }
+                }
+                item.setResult(ms, real)
             }
+        }
+    }
+
+    @Volatile private var coreReady = false
+
+    private fun coreEnv(ctx: Application) {
+        if (!coreReady) {
+            Libv2ray.initCoreEnv(ctx.filesDir.absolutePath, "")
+            coreReady = true
         }
     }
 
