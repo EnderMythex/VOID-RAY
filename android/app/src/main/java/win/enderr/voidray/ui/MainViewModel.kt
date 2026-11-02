@@ -107,9 +107,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     var toast by mutableStateOf<ToastMsg?>(null); private set
 
-    // ---- VPN disclosure, shown once before the first connection (Google Play's prominent disclosure)
+    // ---- Google Play rules, only in the Play build: a disclosure before the first
+    // connection, and encrypted servers only (VpnService policy)
+    private val playRules = BuildConfig.PLAY_STORE
     var disclosureVisible by mutableStateOf(false); private set
-    val disclosureAccepted: Boolean get() = store.vpnDisclosureAccepted
+    /** True while the disclosure still has to be shown before connecting. */
+    val needsDisclosure: Boolean get() = playRules && !store.vpnDisclosureAccepted
 
     // ---- updates (GitHub builds only: on Google Play, Play delivers them)
     val canSelfUpdate: Boolean = !BuildConfig.PLAY_STORE
@@ -282,7 +285,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (rebuild || servers.isEmpty()) {
             servers.clear()
             servers.addAll(info.servers.map(::ServerItem))
-            if (servers.none { it.profile.key == selectedKey }) select(servers.firstOrNull { it.encrypted })
+            if (servers.none { it.profile.key == selectedKey }) select(servers.firstOrNull { it.encrypted || !playRules })
         }
         val id = sid
         val list = store.history(id)
@@ -376,7 +379,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val selected: ServerItem? get() = servers.firstOrNull { it.profile.key == selectedKey }
 
     fun select(item: ServerItem?) {
-        if (item != null && !item.encrypted) {
+        if (playRules && item != null && !item.encrypted) {
             showToast(L.t("errUnencrypted"), error = true)
             return
         }
@@ -406,7 +409,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             showToast(L.t("pickServer"), error = true)
             return
         }
-        if (!server.encrypted) {
+        if (playRules && !server.encrypted) {
             showToast(L.t("errUnencrypted"), error = true)
             return
         }

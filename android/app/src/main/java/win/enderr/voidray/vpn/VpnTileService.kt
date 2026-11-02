@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import win.enderr.voidray.BuildConfig
 import win.enderr.voidray.MainActivity
 import win.enderr.voidray.data.Store
 
@@ -36,7 +37,7 @@ class VpnTileService : TileService() {
         when (VpnState.status.value) {
             VpnStatus.Connected, VpnStatus.Connecting -> VoidRayVpnService.stop(this)
             VpnStatus.Disconnected -> {
-                val ready = Store(this).vpnDisclosureAccepted &&
+                val ready = (!BuildConfig.PLAY_STORE || Store(this).vpnDisclosureAccepted) &&
                     VpnService.prepare(this) == null && VoidRayVpnService.configFile(this).exists()
                 if (ready) VoidRayVpnService.start(this, VpnState.serverName.value) else openApp()
             }

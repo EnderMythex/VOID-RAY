@@ -29,8 +29,8 @@ and the EnderrVPN server you selected (on Windows: a virtual network adapter, or
 While you're connected, your internet traffic goes through that tunnel and the server forwards it to
 its destination, so websites see the server's IP address instead of yours.
 
-- The app only connects to servers that encrypt this tunnel (TLS, REALITY, or the protocol's own
-  encryption) and refuses the others.
+- The Google Play version only connects to servers that encrypt this tunnel (TLS, REALITY, or the
+  protocol's own encryption) and refuses the others; the GitHub version marks them "Not encrypted".
 - The app does not log, inspect, store or share the content or the destinations of your traffic.
 - EnderrVPN's servers count the amount of data each subscription uses and note the time of its last
   connection, to apply the limits of your plan. Both are shown to you in the app.

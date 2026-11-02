@@ -5,6 +5,9 @@ Everything the app itself needs is done; this page lists what is left to do in
 
 ## Already handled in the app
 
+These apply to the `play` build. The usual GitHub APK (`github` build) keeps its updater and
+skips the Play-only rules: no disclosure dialog, and unencrypted servers are only tagged.
+
 | Play requirement | How VOID-RAY meets it |
 | --- | --- |
 | Target API level (Android 16 / API 36 since Aug 31, 2026) | `targetSdk = 36` |
@@ -23,8 +26,9 @@ Everything the app itself needs is done; this page lists what is left to do in
 
 ## 1. Get the bundle
 
-GitHub → **Actions** → **Android** (or **Release** for a versioned build) → latest run →
-**Artifacts** → `VoidRay-play-bundle` → the `.aab` inside is what you upload.
+Each GitHub release contains `VoidRay-android-play-store.aab`: that is the file to upload.
+Builds between releases: **Actions** → **Android** → latest run → **Artifacts** →
+`VoidRay-play-bundle`.
 
 It is signed with the key from the `VOIDRAY_KEYSTORE_B64` secret, which becomes your
 **upload key** in Play Console. The `versionCode` comes from the version: `1.5.0` → `10500`.
@@ -179,6 +183,6 @@ notification, tap Disconnect), upload it to YouTube as *unlisted*, and paste the
 
 ## Updating later
 
-Run **Actions → Release** with the new version: the GitHub release gets the APKs as before, and the
-run's `VoidRay-play-bundle` artifact is the bundle to upload in Play Console. Add a
+Run **Actions → Release** with the new version: the GitHub release gets the APKs as before plus
+`VoidRay-android-play-store.aab`, the bundle to upload in Play Console. Add a
 `changelogs/<versionCode>.txt` for the "What's new" text.

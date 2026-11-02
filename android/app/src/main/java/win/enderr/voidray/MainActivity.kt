@@ -49,8 +49,8 @@ class MainActivity : ComponentActivity() {
         when (VpnState.status.value) {
             VpnStatus.Connected -> vm.stopVpn()
             VpnStatus.Disconnected -> {
-                // Explain what the VPN does before Android's own consent dialog, the first time.
-                if (!vm.disclosureAccepted) {
+                // Google Play build: explain what the VPN does before Android's own consent dialog, once.
+                if (vm.needsDisclosure) {
                     vm.askDisclosure()
                     return
                 }

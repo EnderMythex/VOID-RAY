@@ -32,6 +32,9 @@
 | **Android (most phones)** | `VoidRay-android-arm64-v8a.apk` in the [latest release](https://github.com/EnderMythex/VOID-RAY/releases/latest) |
 | **Android (all devices)** | `VoidRay-android-universal.apk` in the [latest release](https://github.com/EnderMythex/VOID-RAY/releases/latest) |
 
+Each release also contains `VoidRay-android-play-store.aab`, the Google Play version: it is meant
+for Play Console and can't be installed directly. The APKs above are the version to use.
+
 On first launch, paste your subscription link `https://sub.enderr.win/ender/…`.
 Only valid EnderrVPN links are accepted, and everything else configures itself.
 
@@ -77,7 +80,8 @@ Only valid EnderrVPN links are accepted, and everything else configures itself.
 - **Built-in updates**: *Check for updates* reads the latest GitHub release and installs
   it (the PC replaces its exe and restarts, Android opens the installer). The Google Play
   build gets its updates from Play instead.
-- **Encrypted servers only**: servers without TLS, REALITY or protocol encryption are refused.
+- **Encryption check**: servers without TLS, REALITY or protocol encryption are marked "Not
+  encrypted" (the Google Play version refuses them).
 
 Protocols: `VLESS` (REALITY, TLS, Vision), `VMess`, `Trojan`, `Shadowsocks` (including
 2022), over TCP, WebSocket, gRPC, HTTPUpgrade, XHTTP and mKCP. Xray JSON subscriptions
@@ -120,10 +124,9 @@ to Google Play and has no install permission. Publishing on Google Play is descr
 2. **Actions → Release → Run workflow** and enter the version (e.g. `1.4.0`), or push a
    `v1.4.0` tag.
 
-The workflow builds `VoidRay-win-x64.exe` and the `VoidRay-android-*.apk` files, then
-creates the release. The Google Play bundle is kept as the run's `VoidRay-play-bundle`
-artifact. The version must be higher than the previous one (Android refuses
-to install an older version). The repo must be public so users can download updates.
+The workflow builds `VoidRay-win-x64.exe`, the `VoidRay-android-*.apk` files and the Google
+Play bundle `VoidRay-android-play-store.aab`, then creates the release. The version must be
+higher than the previous one (Android refuses to install an older version). The repo must be public so users can download updates.
 
 ## Privacy
 
