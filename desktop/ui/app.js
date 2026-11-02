@@ -9,6 +9,12 @@ const appWindow = () => TAURI.window.getCurrentWindow();
 const $ = (id) => document.getElementById(id);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+/** Rewrites an element only when its HTML changed: state events are frequent (pings,
+ *  refreshes) and rebuilding restarts animations such as the gauge sweep. */
+function setHTML(el, html) {
+  if (el._html !== html) { el._html = html; el.innerHTML = html; }
+}
+
 let S = null;
 let lang = "en";
 let tab = "overview";
@@ -246,13 +252,13 @@ function render() {
   // servers
   $("server-count").textContent = `${S.servers.length} ${t("configs")}`;
   $("no-servers").hidden = S.servers.length > 0;
-  $("servers").innerHTML = S.servers.map((s) => `
+  setHTML($("servers"), S.servers.map((s) => `
     <li class="${s.key === S.selectedKey ? "sel" : ""}" data-key="${esc(s.key)}" title="${esc(s.fullName)}">
       <div><div class="n">${esc(s.name)}</div>
         <div class="tags"><span class="tag p">${esc(s.protocol)}</span><span class="tag">${esc(s.network)}</span>${s.security ? `<span class="tag s">${esc(s.security)}</span>` : ""}${s.bypass ? '<span class="tag w">BYPASS</span>' : ""}</div></div>
       <span class="ms ${s.quality}">${s.quality === "testing" ? "···" : s.quality === "timeout" ? "timeout" : s.ping ? s.ping + " ms" : "—"}</span>
       <button class="copy" data-copy="${esc(s.key)}" title="${esc(t("copy"))}"><svg viewBox="0 0 24 24"><path d="M9 9h12v12H9zM5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
-    </li>`).join("");
+    </li>`).join(""));
 
   // subscription
   drawGauge(d);
@@ -298,15 +304,15 @@ function renderFresh() {
 function drawBars(box, days, tall) {
   const known = days.filter((x) => x.value !== null);
   if (!known.length) {
-    box.innerHTML = tall ? `<p class="bars-note">${esc(t("histWait"))}</p>` : "";
+    setHTML(box, tall ? `<p class="bars-note">${esc(t("histWait"))}</p>` : "");
     box.style.display = tall ? "block" : "none";
     return;
   }
   box.style.display = "";
   const peak = Math.max(...known.map((x) => x.value)) || 1;
-  box.innerHTML = days.map((x) => x.value === null
+  setHTML(box, days.map((x) => x.value === null
     ? '<i class="void"></i>'
-    : `<i style="height:${Math.max(4, (x.value / peak) * 100)}%" title="${esc(shortDate(x.day) + " · " + bytes(x.value))}"></i>`).join("");
+    : `<i style="height:${Math.max(4, (x.value / peak) * 100)}%" title="${esc(shortDate(x.day) + " · " + bytes(x.value))}"></i>`).join(""));
 }
 
 function drawGauge(d) {
@@ -321,13 +327,13 @@ function drawGauge(d) {
     const delay = d.unlimited && d.live ? `animation-delay:${(-(i / N) * 5.5).toFixed(2)}s;` : "";
     html += `<line class="${cls}" style="--gauge:${tone};${delay}" x1="${(100 + 66 * Math.cos(a)).toFixed(2)}" y1="${(100 + 66 * Math.sin(a)).toFixed(2)}" x2="${(100 + 80 * Math.cos(a)).toFixed(2)}" y2="${(100 + 80 * Math.sin(a)).toFixed(2)}"/>`;
   }
-  g.innerHTML = html;
+  setHTML(g, html);
 }
 
 function drawDetails(d) {
   const s = d.sub;
   const box = $("details");
-  if (!s) { box.innerHTML = ""; return; }
+  if (!s) { setHTML(box, ""); return; }
   const rows = [[t("rowId"), S.sid || "—", "mono"]];
   if (s.emails?.length) rows.push([t(s.emails.length > 1 ? "rowAccounts" : "rowAccount"), s.emails.join(" · ")]);
   else if (s.username) rows.push([t("rowAccount"), s.username]);
@@ -342,13 +348,13 @@ function drawDetails(d) {
     const hint = days < 0 ? t("expired") : days === 0 ? t("today") : days === 1 ? t("inDay", 1) : t("inDays", days);
     rows.push([t("rowExpiry"), { text: shortDate(s.expire * 1000), hint }, days <= 3 ? "alert" : days <= 7 ? "warn" : ""]);
   }
-  box.innerHTML = rows.map(([k, v, cls = ""]) => {
+  setHTML(box, rows.map(([k, v, cls = ""]) => {
     let val;
     if (v && v.chip) val = `<span class="chip ${v.cls}">${esc(v.chip)}</span>`;
     else if (v && v.text) val = `<span class="v ${cls}">${esc(v.text)} <span class="h">· ${esc(v.hint)}</span></span>`;
     else val = `<span class="v ${cls}">${esc(v)}</span>`;
     return `<div class="r"><span class="k">${esc(k)}</span>${val}</div>`;
-  }).join("");
+  }).join(""));
 }
 
 // ================================================================== tabs
@@ -476,7 +482,7 @@ function openSettings() {
   const o = $("settings");
   o.hidden = false;
   o.classList.remove("closing");
-  invoke("get_logs").then((lines) => { $("log").textContent = lines.join("\n"); $("log").scrollTop = 1e9; });
+  invoke("get_logs").then((lines) => { $("log").replaceChildren(...lines.map((l) => l + "\n")); $("log").scrollTop = 1e9; });
   requestAnimationFrame(() => { setSeg($("theme-seg"), S.theme); setSeg($("lang-seg"), S.language); });
 }
 function closeSettings() {
@@ -599,14 +605,18 @@ async function start() {
   listen("log", (line) => {
     const log = $("log");
     if ($("settings").hidden) return;
-    log.textContent += (log.textContent ? "\n" : "") + line;
+    // One text node per line, capped like the Rust side: appending to one big string
+    // would copy the whole log on every line.
+    log.append(line + "\n");
+    while (log.childNodes.length > 500) log.firstChild.remove();
     log.scrollTop = 1e9;
   });
   listen("updateProgress", (p) => toast(t("updDownloading", p)));
   listen("trayConnectFailed", (code) => handleConnectError(code));
 
   // Ticks: elapsed time and "updated x min ago".
-  setInterval(() => { if (S?.authenticated) { renderLive(); renderFresh(); } }, 1000);
+  // Paused while the window is hidden in the tray.
+  setInterval(() => { if (S?.authenticated && !document.hidden) { renderLive(); renderFresh(); } }, 1000);
 
   requestAnimationFrame(() => { showTab(tab); appWindow().show(); appWindow().setFocus(); });
 }

@@ -1,6 +1,8 @@
 //! Notification-area icon: closing the window hides it here and the VPN keeps
 //! running. A click reopens it; the menu connects, disconnects or quits.
 
+use std::sync::Mutex;
+
 use tauri::image::Image;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
@@ -15,6 +17,10 @@ pub struct TrayItems {
     open: MenuItem<Wry>,
     toggle: MenuItem<Wry>,
     quit: MenuItem<Wry>,
+    idle: Image<'static>,
+    on: Image<'static>,
+    /// What the tray shows now: most state events (pings, refreshes) change nothing here.
+    shown: Mutex<Option<(ConnState, String, bool)>>,
 }
 
 fn t(lang: &str, key: &str) -> &'static str {
@@ -39,8 +45,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         &[&open, &PredefinedMenuItem::separator(app)?, &toggle, &PredefinedMenuItem::separator(app)?, &quit],
     )?;
 
+    let idle = Image::from_bytes(IDLE)?;
+    let on = Image::from_bytes(ON)?;
     TrayIconBuilder::with_id("main")
-        .icon(Image::from_bytes(IDLE)?)
+        .icon(idle.clone())
         .tooltip("VOID-RAY")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -75,21 +83,27 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
 
-    app.manage(TrayItems { open, toggle, quit });
+    app.manage(TrayItems { open, toggle, quit, idle, on, shown: Mutex::new(None) });
     Ok(())
 }
 
 pub fn refresh(app: &AppHandle, state: ConnState, lang: &str, authenticated: bool) {
     let Some(items) = app.try_state::<TrayItems>() else { return };
+    {
+        let mut shown = items.shown.lock().unwrap();
+        let next = (state, lang.to_string(), authenticated);
+        if shown.as_ref() == Some(&next) {
+            return;
+        }
+        *shown = Some(next);
+    }
     let connected = state == ConnState::Connected;
     let _ = items.open.set_text(t(lang, "open"));
     let _ = items.toggle.set_text(t(lang, if connected { "disconnect" } else { "connect" }));
     let _ = items.toggle.set_enabled(authenticated && matches!(state, ConnState::Connected | ConnState::Disconnected));
     let _ = items.quit.set_text(t(lang, "quit"));
     if let Some(tray) = app.tray_by_id("main") {
-        if let Ok(icon) = Image::from_bytes(if connected { ON } else { IDLE }) {
-            let _ = tray.set_icon(Some(icon));
-        }
+        let _ = tray.set_icon(Some(if connected { items.on.clone() } else { items.idle.clone() }));
         let _ = tray.set_tooltip(Some(format!("VOID-RAY — {}", t(lang, if connected { "on" } else { "off" }))));
     }
 }

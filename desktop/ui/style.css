@@ -347,7 +347,7 @@ body[data-state="connected"] .live .dot { background: var(--accent); box-shadow:
 .drawer-head h2 { font: 600 28px var(--display); letter-spacing: -.02em; }
 .drawer-body { flex: 1; overflow-y: auto; padding: 0 22px 24px; }
 .swatches { display: grid; grid-template-columns: repeat(6, 1fr); justify-items: center; }
-.swatch { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; border: 2px solid transparent; transition: border-color .15s, transform .15s; }
+.swatch { width: 46px; height: 46px; padding: 0; border-radius: 50%; display: grid; place-items: center; border: 2px solid transparent; transition: border-color .15s, transform .15s; }
 .swatch::before { content: ""; width: 34px; height: 34px; border-radius: 50%; background: var(--sw); grid-area: 1 / 1; }
 .swatch svg { grid-area: 1 / 1; width: 17px; height: 17px; stroke: #fff; stroke-width: 2.6; opacity: 0; }
 .swatch:hover { transform: scale(1.06); }

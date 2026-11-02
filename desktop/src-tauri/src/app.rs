@@ -155,6 +155,8 @@ struct Inner {
 
 pub struct Core {
     pub handle: AppHandle,
+    /// Elevation never changes for a running process (a restart is a new one).
+    admin: bool,
     inner: Mutex<Inner>,
     xray: CoreProcess,
     tun: CoreProcess,
@@ -201,6 +203,7 @@ impl Core {
         }
         let core = Arc::new(Core {
             handle,
+            admin: system::is_admin(),
             inner: Mutex::new(inner),
             xray: CoreProcess::new("xray"),
             tun: CoreProcess::new("sing-box"),
@@ -257,7 +260,7 @@ impl Core {
                 version: format!("v{}", env!("CARGO_PKG_VERSION")),
                 update: i.update.clone(),
                 checking_update: i.checking_update,
-                is_admin: system::is_admin(),
+                is_admin: self.admin,
             }
         })
     }
@@ -495,14 +498,20 @@ impl Core {
                 (key, net::tcp_ping(&host, port).await)
             });
         }
+        // One snapshot per result is wasteful with many servers: batch them a little.
+        let mut last = std::time::Instant::now();
         while let Some(Ok((key, ms))) = set.join_next().await {
             self.with(|i| {
                 if let Some(s) = i.servers.iter_mut().find(|s| s.key == key) {
                     s.set_ping(ms);
                 }
             });
-            self.emit();
+            if last.elapsed() >= Duration::from_millis(150) {
+                self.emit();
+                last = std::time::Instant::now();
+            }
         }
+        self.emit();
     }
 
     pub fn set_prefs(&self, theme: String, accent: i32, language: String, ui_lang: String) {
@@ -548,7 +557,7 @@ impl Core {
         });
         let Some(server) = server else { return Err("pickServer".into()) };
         // The TUN card needs administrator rights: the UI offers to relaunch elevated.
-        if tun && !system::is_admin() {
+        if tun && !self.admin {
             return Err("needAdmin".into());
         }
 
