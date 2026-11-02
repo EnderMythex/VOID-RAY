@@ -39,6 +39,7 @@ impl CoreProcess {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         let mut child = cmd.spawn().map_err(|e| format!("Impossible de démarrer {} : {e}", self.name))?;
+        lifetime::bind(&child);
 
         let prefix = if self.name == "sing-box" { "[tun] " } else { "" };
         for stream in [child.stdout.take().map(|s| Box::new(s) as Box<dyn Read + Send>),
@@ -107,6 +108,115 @@ fn wait_exit(child: &mut Child, timeout: Duration) -> bool {
         std::thread::sleep(Duration::from_millis(50));
     }
     false
+}
+
+// ------------------------------------------------------------------ lifetime
+
+/// The cores must never outlive VOID-RAY: if the app is killed (crash, Task Manager, an
+/// antivirus quarantine), a leftover sing-box keeps the "VOID-RAY" network card up, Windows
+/// shows the VPN as connected, and the next start fails because that card already exists.
+#[cfg(windows)]
+pub mod lifetime {
+    use std::os::windows::io::AsRawHandle;
+    use std::path::PathBuf;
+    use std::sync::OnceLock;
+
+    use windows::core::{PCWSTR, PWSTR};
+    use windows::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+    use windows::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation, SetInformationJobObject,
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+    use windows::Win32::System::Threading::{
+        OpenProcess, QueryFullProcessImageNameW, TerminateProcess, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_TERMINATE,
+    };
+
+    struct Job(HANDLE);
+    unsafe impl Send for Job {}
+    unsafe impl Sync for Job {}
+    static JOB: OnceLock<Option<Job>> = OnceLock::new();
+
+    /// Puts a core in a job that Windows closes, killing it, when VOID-RAY's process ends.
+    pub fn bind(child: &std::process::Child) {
+        let job = JOB.get_or_init(|| unsafe {
+            let handle = CreateJobObjectW(None, PCWSTR::null()).ok()?;
+            let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
+            info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            SetInformationJobObject(
+                handle,
+                JobObjectExtendedLimitInformation,
+                &info as *const _ as *const std::ffi::c_void,
+                std::mem::size_of_val(&info) as u32,
+            )
+            .ok()?;
+            Some(Job(handle))
+        });
+        if let Some(job) = job {
+            unsafe {
+                let _ = AssignProcessToJobObject(job.0, HANDLE(child.as_raw_handle()));
+            }
+        }
+    }
+
+    /// Ends xray / sing-box processes left by an earlier VOID-RAY (only ours: same folders).
+    /// A leftover started as administrator can only be ended by an elevated VOID-RAY.
+    /// Returns true when one was ended.
+    pub fn kill_leftovers() -> bool {
+        let dirs: Vec<String> = super::core_dirs().iter().map(|d| d.to_string_lossy().to_lowercase()).collect();
+        let mut killed = false;
+        unsafe {
+            let Ok(snapshot) = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) else { return false };
+            let mut entry = PROCESSENTRY32W { dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32, ..Default::default() };
+            let mut more = Process32FirstW(snapshot, &mut entry).is_ok();
+            while more {
+                let len = entry.szExeFile.iter().position(|&c| c == 0).unwrap_or(entry.szExeFile.len());
+                let name = String::from_utf16_lossy(&entry.szExeFile[..len]).to_lowercase();
+                if name == "xray.exe" || name == "sing-box.exe" {
+                    if let Ok(process) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE, false, entry.th32ProcessID) {
+                        let mut buf = [0u16; 1024];
+                        let mut size = buf.len() as u32;
+                        if QueryFullProcessImageNameW(process, PROCESS_NAME_WIN32, PWSTR(buf.as_mut_ptr()), &mut size).is_ok() {
+                            let path = PathBuf::from(String::from_utf16_lossy(&buf[..size as usize]));
+                            let dir = path.parent().map(|d| d.to_string_lossy().to_lowercase()).unwrap_or_default();
+                            if dirs.contains(&dir) && TerminateProcess(process, 1).is_ok() {
+                                killed = true;
+                            }
+                        }
+                        let _ = CloseHandle(process);
+                    }
+                }
+                more = Process32NextW(snapshot, &mut entry).is_ok();
+            }
+            let _ = CloseHandle(snapshot);
+        }
+        if killed {
+            // Windows removes the leftover network card shortly after its process ends.
+            std::thread::sleep(std::time::Duration::from_millis(800));
+        }
+        killed
+    }
+}
+
+#[cfg(not(windows))]
+pub mod lifetime {
+    pub fn bind(_child: &std::process::Child) {}
+    pub fn kill_leftovers() -> bool {
+        false
+    }
+}
+
+/// Where VOID-RAY looks for (and starts) its cores.
+fn core_dirs() -> Vec<PathBuf> {
+    let mut dirs = vec![core_dir()];
+    if let Some(here) = std::env::current_exe().ok().and_then(|p| p.parent().map(Path::to_path_buf)) {
+        dirs.push(here.join("core"));
+        dirs.push(here);
+    }
+    dirs
 }
 
 // ------------------------------------------------------------------ install

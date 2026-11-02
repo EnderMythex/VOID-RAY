@@ -630,6 +630,9 @@ impl Core {
             }
         });
         let cfg = xray_cfg.to_string_lossy().into_owned();
+        if cores::lifetime::kill_leftovers() {
+            self.log("Processus Xray / sing-box restés d'une session précédente arrêtés.".into());
+        }
         self.xray.start(&xray_exe, &["run", "-c", &cfg], log.clone(), on_crash.clone())?;
         net::wait_for_port(socks, Duration::from_secs(8), || match self.xray.exited() {
             Some(code) => Err(format!("Xray s'est arrêté (code {code}). Consulte le journal.")),

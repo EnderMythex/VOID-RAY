@@ -26,7 +26,9 @@ fn main() {
         return;
     }
     net::cleanup_old_version();
-    // Leftover proxy from a crash? Put the user's settings back.
+    // Cores left running by a VOID-RAY that was killed (they keep the TUN card up), then a
+    // leftover proxy from a crash: put the user's network back.
+    cores::lifetime::kill_leftovers();
     system::restore_proxy();
     system::register_app_id();
 

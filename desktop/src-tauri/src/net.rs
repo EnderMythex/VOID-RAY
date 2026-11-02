@@ -101,20 +101,16 @@ pub async fn latency(client: &reqwest::Client) -> Option<u32> {
     res.status().is_success().then(|| started.elapsed().as_millis().max(1) as u32)
 }
 
-/// Services that school or office firewalls usually block, reached directly (VPN off).
-/// None when the network itself is down: nothing can be concluded then.
+/// Games that school or office firewalls usually block, reached directly (VPN off) over
+/// HTTPS only. None when the network itself is down: nothing can be concluded then.
 pub async fn blocked_services() -> Option<Vec<&'static str>> {
     let (google, cloudflare) = tokio::join!(tcp_ping("www.google.com", 443), tcp_ping("1.1.1.1", 443));
     if google.is_none() && cloudflare.is_none() {
         return None;
     }
-    let (roblox, minecraft, ssh) = tokio::join!(
-        tcp_ping("www.roblox.com", 443),
-        tcp_ping("api.minecraftservices.com", 443),
-        tcp_ping("github.com", 22),
-    );
+    let (roblox, minecraft) = tokio::join!(tcp_ping("www.roblox.com", 443), tcp_ping("api.minecraftservices.com", 443));
     let mut blocked = Vec::new();
-    for (name, ms) in [("Roblox", roblox), ("Minecraft", minecraft), ("SSH", ssh)] {
+    for (name, ms) in [("Roblox", roblox), ("Minecraft", minecraft)] {
         if ms.is_none() {
             blocked.push(name);
         }

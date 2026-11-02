@@ -9,7 +9,6 @@
 
 ## What's new
 
-- **Windows: notification when you connect.** "Connected to <server>" with the location of the exit (city, region, country); a click opens VOID-RAY.
-- **Windows: live latency.** The Latency tile now updates every 5 seconds while connected, measured through the tunnel on a connection kept open (a real round trip, not the first handshakes).
-- **Windows: filtered networks detected.** When a school or office Wi-Fi blocks the VPN servers, Roblox, Minecraft or SSH, or when a server's traffic doesn't get through, VOID-RAY offers to switch to the Firewall Bypass server, which goes through Cloudflare.
+- **Windows: no more "ghost" VPN after VOID-RAY is closed by force.** If the app was killed (crash, Task Manager, an antivirus quarantine) while connected, Xray and sing-box kept running: Windows still showed the VOID-RAY network as connected, and the next connection failed with "a file that already exists". They now stop together with the app, and leftovers from an older session are ended when VOID-RAY starts or connects.
+- Windows: the filtered-network check only tests Roblox and Minecraft over HTTPS (no more SSH test).
 - Android: no change since 1.5.2.
