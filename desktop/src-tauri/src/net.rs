@@ -238,9 +238,24 @@ pub async fn install_release(url: &str, mut progress: impl FnMut(u32)) -> Result
     Ok(())
 }
 
+/// Deletes what the last update left: the previous exe and an unfinished download. Right
+/// after an update the old process is still finishing its exit and Windows keeps its exe
+/// locked for a moment, so this keeps trying in the background (up to 30 s).
 pub fn cleanup_old_version() {
-    if let Ok(exe) = std::env::current_exe() {
-        let _ = std::fs::remove_file(exe.with_extension("exe.old"));
-        let _ = std::fs::remove_file(exe.with_file_name("VoidRay.update.exe"));
+    let Ok(exe) = std::env::current_exe() else { return };
+    let leftovers = [exe.with_extension("exe.old"), exe.with_file_name("VoidRay.update.exe")];
+    if leftovers.iter().all(|p| !p.exists()) {
+        return;
     }
+    std::thread::spawn(move || {
+        for _ in 0..60 {
+            for path in leftovers.iter().filter(|p| p.exists()) {
+                let _ = std::fs::remove_file(path);
+            }
+            if leftovers.iter().all(|p| !p.exists()) {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(500));
+        }
+    });
 }
