@@ -40,6 +40,8 @@ pub struct ExitInfo {
     pub ip: String,
     pub country: Option<String>,
     pub code: Option<String>,
+    pub city: Option<String>,
+    pub region: Option<String>,
     pub delay: u32,
 }
 
@@ -53,13 +55,16 @@ pub async fn check_exit(http_port: u16) -> Option<ExitInfo> {
         .build()
         .ok()?;
     let started = Instant::now();
-    if let Ok(res) = http.get("https://ipwho.is/?fields=ip,country,country_code").send().await {
+    if let Ok(res) = http.get("https://ipwho.is/?fields=ip,country,country_code,region,city").send().await {
         if let Ok(v) = res.json::<Value>().await {
             if let Some(ip) = v.get("ip").and_then(Value::as_str) {
+                let text = |k: &str| v.get(k).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
                 return Some(ExitInfo {
                     ip: ip.to_string(),
-                    country: v.get("country").and_then(Value::as_str).map(str::to_string),
-                    code: v.get("country_code").and_then(Value::as_str).map(str::to_string),
+                    country: text("country"),
+                    code: text("country_code"),
+                    city: text("city"),
+                    region: text("region"),
                     delay: started.elapsed().as_millis() as u32,
                 });
             }
@@ -67,7 +72,54 @@ pub async fn check_exit(http_port: u16) -> Option<ExitInfo> {
     }
     let started = Instant::now();
     let ip = http.get("https://api.ipify.org").send().await.ok()?.text().await.ok()?;
-    Some(ExitInfo { ip: ip.trim().to_string(), country: None, code: None, delay: started.elapsed().as_millis() as u32 })
+    Some(ExitInfo {
+        ip: ip.trim().to_string(),
+        country: None,
+        code: None,
+        city: None,
+        region: None,
+        delay: started.elapsed().as_millis() as u32,
+    })
+}
+
+/// Client for the live latency: it keeps its connection through the tunnel open, so after
+/// the first probe each one measures a round trip, not new handshakes.
+pub fn tunnel_client(http_port: u16) -> Option<reqwest::Client> {
+    reqwest::Client::builder()
+        .proxy(reqwest::Proxy::all(format!("http://127.0.0.1:{http_port}")).ok()?)
+        .timeout(Duration::from_secs(8))
+        .pool_idle_timeout(Duration::from_secs(60))
+        .user_agent("VoidRay/1.0")
+        .build()
+        .ok()
+}
+
+/// One tiny request through the tunnel (an empty 204 page), in ms.
+pub async fn latency(client: &reqwest::Client) -> Option<u32> {
+    let started = Instant::now();
+    let res = client.get("https://www.gstatic.com/generate_204").send().await.ok()?;
+    res.status().is_success().then(|| started.elapsed().as_millis().max(1) as u32)
+}
+
+/// Services that school or office firewalls usually block, reached directly (VPN off).
+/// None when the network itself is down: nothing can be concluded then.
+pub async fn blocked_services() -> Option<Vec<&'static str>> {
+    let (google, cloudflare) = tokio::join!(tcp_ping("www.google.com", 443), tcp_ping("1.1.1.1", 443));
+    if google.is_none() && cloudflare.is_none() {
+        return None;
+    }
+    let (roblox, minecraft, ssh) = tokio::join!(
+        tcp_ping("www.roblox.com", 443),
+        tcp_ping("api.minecraftservices.com", 443),
+        tcp_ping("github.com", 22),
+    );
+    let mut blocked = Vec::new();
+    for (name, ms) in [("Roblox", roblox), ("Minecraft", minecraft), ("SSH", ssh)] {
+        if ms.is_none() {
+            blocked.push(name);
+        }
+    }
+    Some(blocked)
 }
 
 pub fn free_port(preferred: u16) -> u16 {

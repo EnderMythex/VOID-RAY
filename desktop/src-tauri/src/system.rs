@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::settings::data_dir;
 
+/// Identity of the app's Windows notifications.
+#[cfg_attr(not(windows), allow(dead_code))]
+const APP_ID: &str = "EnderrVPN.VOID-RAY";
+
 fn proxy_backup_path() -> PathBuf {
     data_dir().join("proxy-backup.json")
 }
@@ -118,6 +122,57 @@ mod win {
             let _ = SetConsoleCtrlHandler(None, false);
             sent
         }
+    }
+
+    /// Toasts need an identity: register ours (name and icon) for this user and use it for
+    /// the process. That is what makes "VOID-RAY" show on top of the notification.
+    pub fn register_app_id() {
+        let icon = data_dir().join("notification.png");
+        if !icon.exists() {
+            let _ = fs::write(&icon, include_bytes!("../icons/icon.png"));
+        }
+        if let Ok((key, _)) = RegKey::predef(HKEY_CURRENT_USER).create_subkey(format!(r"Software\Classes\AppUserModelId\{APP_ID}")) {
+            let _ = key.set_value("DisplayName", &"VOID-RAY");
+            let _ = key.set_value("IconUri", &icon.to_string_lossy().into_owned());
+        }
+        unsafe {
+            let _ = windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(&windows::core::HSTRING::from(APP_ID));
+        }
+    }
+
+    /// Windows notification; a click on it calls `on_click`.
+    pub fn notify(title: &str, lines: &[String], on_click: impl Fn() + Send + Sync + 'static) {
+        use std::sync::Mutex;
+        use windows::core::{IInspectable, HSTRING};
+        use windows::Data::Xml::Dom::XmlDocument;
+        use windows::Foundation::TypedEventHandler;
+        use windows::UI::Notifications::{ToastNotification, ToastNotificationManager};
+
+        // Keeps the last toast alive so its click handler still fires.
+        static LAST: Mutex<Option<ToastNotification>> = Mutex::new(None);
+        let esc = |t: &str| t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;").replace('"', "&quot;");
+        let texts: String = std::iter::once(title).chain(lines.iter().map(String::as_str))
+            .map(|t| format!("<text>{}</text>", esc(t)))
+            .collect();
+        let xml = format!(
+            "<toast><visual><binding template=\"ToastGeneric\">{texts}</binding></visual><audio silent=\"true\"/></toast>"
+        );
+        let show = || -> windows::core::Result<()> {
+            unsafe {
+                let _ = windows::Win32::System::WinRT::RoInitialize(windows::Win32::System::WinRT::RO_INIT_MULTITHREADED);
+            }
+            let doc = XmlDocument::new()?;
+            doc.LoadXml(&HSTRING::from(xml.as_str()))?;
+            let toast = ToastNotification::CreateToastNotification(&doc)?;
+            toast.Activated(&TypedEventHandler::<ToastNotification, IInspectable>::new(move |_, _| {
+                on_click();
+                Ok(())
+            }))?;
+            ToastNotificationManager::CreateToastNotifierWithId(&HSTRING::from(APP_ID))?.Show(&toast)?;
+            *LAST.lock().unwrap() = Some(toast);
+            Ok(())
+        };
+        let _ = show();
     }
 
     pub fn is_admin() -> bool {
@@ -266,6 +321,8 @@ mod other {
         true
     }
     pub fn listen_for_show(_on_show: impl Fn() + Send + 'static) {}
+    pub fn register_app_id() {}
+    pub fn notify(_title: &str, _lines: &[String], _on_click: impl Fn() + Send + Sync + 'static) {}
 }
 
 #[cfg(not(windows))]

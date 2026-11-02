@@ -112,6 +112,7 @@ pub struct Snapshot {
     connected_at: Option<i64>,
     exit: Option<ExitInfo>,
     exit_failed: bool,
+    latency: Option<u32>,
     refreshing: bool,
     refresh_failed: bool,
     last_refresh: i64,
@@ -142,6 +143,10 @@ struct Inner {
     connected_at: Option<i64>,
     exit: Option<ExitInfo>,
     exit_failed: bool,
+    /// Live round trip through the tunnel, refreshed every few seconds.
+    latency: Option<u32>,
+    /// The Firewall Bypass hint is shown once per run.
+    bypass_suggested: bool,
     refreshing: bool,
     refresh_failed: bool,
     last_refresh: i64,
@@ -183,6 +188,8 @@ impl Core {
             connected_at: None,
             exit: None,
             exit_failed: false,
+            latency: None,
+            bypass_suggested: false,
             refreshing: false,
             refresh_failed: false,
             last_refresh: now_ms(),
@@ -250,6 +257,7 @@ impl Core {
                 connected_at: i.connected_at,
                 exit: i.exit.clone(),
                 exit_failed: i.exit_failed,
+                latency: i.latency,
                 refreshing: i.refreshing,
                 refresh_failed: i.refresh_failed,
                 last_refresh: i.last_refresh,
@@ -512,6 +520,7 @@ impl Core {
             }
         }
         self.emit();
+        self.check_network().await;
     }
 
     pub fn set_prefs(&self, theme: String, accent: i32, language: String, ui_lang: String) {
@@ -564,15 +573,20 @@ impl Core {
         self.set_state(ConnState::Connecting);
         match self.start_tunnel(&server, tun).await {
             Ok(()) => {
+                let since = now_ms();
                 self.with(|i| {
-                    i.connected_at = Some(now_ms());
+                    i.connected_at = Some(since);
                     i.exit = None;
                     i.exit_failed = false;
+                    i.latency = None;
                 });
                 self.set_state(ConnState::Connected);
                 self.log(if tun { "Connecté. Mode TUN : tout le PC passe par le VPN." } else { "Connecté. Proxy système activé." }.into());
                 let me = self.clone();
-                tauri::async_runtime::spawn(async move { me.check_exit().await });
+                tauri::async_runtime::spawn(async move {
+                    me.clone().check_exit().await;
+                    me.watch_latency(since).await;
+                });
                 Ok(())
             }
             Err(e) => {
@@ -677,6 +691,7 @@ impl Core {
         self.with(|i| {
             i.connected_at = None;
             i.exit = None;
+            i.latency = None;
             i.exit_failed = false;
         });
         self.set_state(ConnState::Disconnected);
@@ -691,6 +706,7 @@ impl Core {
         self.with(|i| {
             i.connected_at = None;
             i.exit = None;
+            i.latency = None;
         });
         self.set_state(ConnState::Disconnected);
         self.toast("errCore", vec![], true);
@@ -705,15 +721,111 @@ impl Core {
         match exit {
             Some(e) => {
                 self.log(format!("IP de sortie : {} {}", e.ip, e.country.clone().unwrap_or_default()));
-                self.with(|i| i.exit = Some(e));
+                self.notify_connected(Some(&e));
+                self.with(|i| {
+                    i.latency = Some(e.delay);
+                    i.exit = Some(e);
+                });
             }
             None => {
                 self.log("Le test de connectivité a échoué : le serveur ne laisse pas passer le trafic.".into());
                 self.with(|i| i.exit_failed = true);
                 self.toast("errNoTraffic", vec![], true);
+                // Often a network that only lets the Cloudflare route through.
+                self.suggest_bypass(Vec::new(), true);
             }
         }
         self.emit();
+    }
+
+    /// Windows notification once the tunnel is proven to work.
+    fn notify_connected(self: &Arc<Self>, exit: Option<&ExitInfo>) {
+        let (server, fr) = self.with(|i| {
+            let key = i.settings.selected_server_key.clone();
+            let name = i.servers.iter().find(|s| Some(&s.key) == key.as_ref()).map(|s| s.name.clone()).unwrap_or_default();
+            (name, i.ui_lang == "fr")
+        });
+        let title = if fr { format!("Connecté à {server}") } else { format!("Connected to {server}") };
+        let mut lines = Vec::new();
+        if let Some(e) = exit {
+            let place: Vec<&str> = [e.city.as_deref(), e.region.as_deref(), e.code.as_deref().or(e.country.as_deref())]
+                .into_iter()
+                .flatten()
+                .collect();
+            if !place.is_empty() {
+                let label = if fr { "Localisation :" } else { "Location:" };
+                lines.push(format!("{label} {}", place.join(", ")));
+            }
+        }
+        lines.push(if fr { "Clique pour plus d'informations" } else { "Click for more information" }.to_string());
+        let me = Arc::downgrade(self);
+        system::notify(&title, &lines, move || {
+            if let Some(me) = me.upgrade() {
+                me.show_window();
+            }
+        });
+    }
+
+    /// Live latency while connected: one tiny request through the tunnel every 5 s, on a
+    /// connection kept open, so it shows the round trip instead of the first handshakes.
+    async fn watch_latency(self: Arc<Self>, since: i64) {
+        let port = self.with(|i| i.http_port);
+        let Some(client) = net::tunnel_client(port) else { return };
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            let current = |i: &mut Inner| i.state == ConnState::Connected && i.connected_at == Some(since);
+            if !self.with(current) {
+                return;
+            }
+            let ms = net::latency(&client).await;
+            if !self.with(current) {
+                return;
+            }
+            if self.with(|i| std::mem::replace(&mut i.latency, ms) != ms) {
+                self.emit();
+            }
+        }
+    }
+
+    /// Restrictive network (school, office…) found while disconnected: blocked VPN
+    /// servers and/or blocked games and SSH. Suggests the Firewall Bypass server once.
+    async fn check_network(self: &Arc<Self>) {
+        let (bypass_up, others_down) = self.with(|i| {
+            let others: Vec<&ServerItem> = i.servers.iter().filter(|s| !s.bypass).collect();
+            (
+                i.servers.iter().any(|s| s.bypass && s.ping.is_some()),
+                !others.is_empty() && others.iter().all(|s| s.quality == "timeout"),
+            )
+        });
+        if self.state() != ConnState::Disconnected || self.with(|i| i.bypass_suggested) {
+            return;
+        }
+        let services = net::blocked_services().await.unwrap_or_default();
+        let servers_blocked = bypass_up && others_down;
+        if servers_blocked || services.len() >= 2 {
+            self.suggest_bypass(services, servers_blocked);
+        }
+    }
+
+    /// Asks the window to offer the Firewall Bypass server (unless it is already in use).
+    fn suggest_bypass(&self, services: Vec<&str>, servers_blocked: bool) {
+        let key = self.with(|i| {
+            let selected = i.settings.selected_server_key.clone();
+            let bypass = i.servers.iter().find(|s| s.bypass)?;
+            if i.bypass_suggested || selected.as_deref() == Some(bypass.key.as_str()) {
+                return None;
+            }
+            i.bypass_suggested = true;
+            Some(bypass.key.clone())
+        });
+        let Some(key) = key else { return };
+        let mut blocked: Vec<String> = services.iter().map(|s| s.to_string()).collect();
+        if servers_blocked {
+            blocked.insert(0, "VPN".into());
+        }
+        self.log(format!("Réseau restrictif détecté ({}) : Firewall Bypass conseillé.", blocked.join(", ")));
+        let _ = self.handle.emit("restrictedNetwork", serde_json::json!({ "key": key, "blocked": blocked }));
+        self.show_window();
     }
 
     /// Relaunches as administrator (for TUN). False when the UAC prompt was declined.

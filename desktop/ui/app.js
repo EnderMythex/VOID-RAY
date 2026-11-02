@@ -235,7 +235,7 @@ function render() {
   // overview
   setSeg($("mode-seg"), S.mode, "mode");
   $("mode-hint").textContent = t(S.mode === "proxy" ? "modeProxyHint" : "modeTunHint");
-  $("t-delay").textContent = S.exitFailed ? t("failed") : S.exit ? S.exit.delay + " ms" : "—";
+  $("t-delay").textContent = S.latency ? S.latency + " ms" : S.exitFailed ? t("failed") : "—";
   $("t-ip").textContent = S.exit?.ip || "—";
   $("t-country").textContent = S.exit?.country ? `${S.exit.country} (${S.exit.code})` : "—";
   $("o-value").textContent = d.value;
@@ -613,6 +613,13 @@ async function start() {
   });
   listen("updateProgress", (p) => toast(t("updDownloading", p)));
   listen("trayConnectFailed", (code) => handleConnectError(code));
+  // This network blocks VPN servers, games or SSH: offer the Firewall Bypass server.
+  listen("restrictedNetwork", async ({ key, blocked }) => {
+    const name = S.servers.find((s) => s.key === key)?.name || "Firewall Bypass";
+    const what = blocked.length ? t("fwBlocked", blocked.join(", ")) : t("fwNoTraffic");
+    const yes = await ask({ title: t("fwTitle"), text: `${what}\n\n${t("fwText", name)}`, yes: t("fwYes", name), no: t("fwNo") });
+    if (yes) { try { await invoke("select_server", { key }); } catch (e) { toastKey(e); } }
+  });
 
   // Ticks: elapsed time and "updated x min ago".
   // Paused while the window is hidden in the tray.

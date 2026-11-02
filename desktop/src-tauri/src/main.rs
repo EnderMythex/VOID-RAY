@@ -28,6 +28,7 @@ fn main() {
     net::cleanup_old_version();
     // Leftover proxy from a crash? Put the user's settings back.
     system::restore_proxy();
+    system::register_app_id();
 
     let built = tauri::Builder::default()
         .setup(move |tauri_app| {

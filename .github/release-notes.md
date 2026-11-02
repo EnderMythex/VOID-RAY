@@ -9,7 +9,7 @@
 
 ## What's new
 
-- **More reliable ping.** Each server is measured three times and the best result is kept, so one slow packet no longer spoils the number (Windows and Android).
-- **Android: real ping.** The list now shows the delay of a real request through each server (TLS, REALITY and the Cloudflare hop included), and falls back to a simple connection test when that fails. Expect higher but more honest numbers: green under 500 ms, orange under 1 s.
-- **Lighter traffic.** Finished connections are released after 1 s instead of up to 5 s (Windows and Android).
-- **Windows (TUN mode): faster first loads.** DNS goes over HTTPS through the tunnel and reuses one connection instead of opening a new one for every lookup.
+- **Windows: notification when you connect.** "Connected to <server>" with the location of the exit (city, region, country); a click opens VOID-RAY.
+- **Windows: live latency.** The Latency tile now updates every 5 seconds while connected, measured through the tunnel on a connection kept open (a real round trip, not the first handshakes).
+- **Windows: filtered networks detected.** When a school or office Wi-Fi blocks the VPN servers, Roblox, Minecraft or SSH, or when a server's traffic doesn't get through, VOID-RAY offers to switch to the Firewall Bypass server, which goes through Cloudflare.
+- Android: no change since 1.5.2.
